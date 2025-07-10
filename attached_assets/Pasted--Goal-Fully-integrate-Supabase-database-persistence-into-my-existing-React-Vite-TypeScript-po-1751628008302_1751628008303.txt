@@ -1,0 +1,42 @@
+🎯 Goal: Fully integrate Supabase database persistence into my existing React + Vite + TypeScript portfolio site with an admin panel. I want editable sections like "About", "Projects", etc., and the changes should persist in the database and appear after reload.
+
+✅ Initial Implementation:
+
+1. 🔌 Connect admin editing functionality to Supabase so all changes persist.
+2. 🗃️ Create a Supabase table called `sections` with the following structure:
+   - `id`: UUID, primary key
+   - `name`: text (e.g., "about", "projects") – unique identifier for each editable section
+   - `content`: text – the actual content to display or edit
+
+3. 🧠 Replace hardcoded content in the app with a reusable component like `EditableContent`, which:
+   - Fetches content from Supabase using `select().eq("name", ...)` on page load
+   - Saves edits using `upsert(...)` when the admin makes changes
+   - Shows an editable input when admin mode is active
+   - Shows plain content otherwise
+   - Handles loading and error states
+
+4. 🪝 Create a reusable custom hook called `useContent(name: string)` that:
+   - Returns `{ content, saveContent, isLoading, error }`
+   - Uses Supabase under the hood
+   - Works with the `sections` table
+
+5. 🧩 Wrap the app with an `AdminProvider` React context:
+   - Toggle admin mode via a simple UI (button or panel)
+   - Use a boolean `isAdmin` flag across the app
+
+6. 🛠️ TypeScript Support for `import.meta.env`:
+   - Add a `vite-env.d.ts` with: `/// <reference types="vite/client" />`
+   - Update `tsconfig.json` to include `"types": ["vite/client"]` under `"compilerOptions"`
+
+7. 📦 Keep all UI and styling exactly as-is. Only replace hardcoded text with dynamic components. Do not change any design.
+
+✅ After this works (you don’t have to implement this part now), I’ll add these later:
+- Version history of edits
+- Draft/Publish workflow
+- Image/video support using Supabase Storage
+- Supabase RLS for edit access by logged-in admins
+- Content import/export in JSON format
+
+Use clean, modular TypeScript, and organize files properly (`lib/supabase.ts`, `hooks/useContent.ts`, `components/EditableContent.tsx`, etc.). Do not skip any part. Make sure edits persist 100% after reload.
+
+Now implement all of this.

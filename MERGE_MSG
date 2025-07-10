@@ -1,0 +1,11 @@
+Set up project with Supabase integration for content editing in admin panel
+
+Initializes project with Supabase, adds .gitignore, README, index.html, package-lock, setup docs, and configures .replit.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 0d1637cb-07d9-4e58-9793-c9dc033fb18c
+
+# Conflicts:
+#	.replit
+#	src~HEAD
+#	start.sh
