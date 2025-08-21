@@ -14,32 +14,33 @@ import Certifications from './components/Sections/Certifications';
 import Contact from './components/Sections/Contact';
 import Footer from './components/Layout/Footer';
 function App() {
-    useEffect(() => {
-  if (process.env.NODE_ENV === 'development') {
-    const runCriticalTests = async () => {
-      console.log('🚨 RUNNING CRITICAL SUPABASE TESTS...');
-      try {
-        const connected = await testSupabaseConnection();
-        if (!connected) {
-          console.error('💥 CRITICAL: Supabase connection failed!');
-          return;
-        }
+   useEffect(() => {
+    // 🚨 Disabled Supabase tests in production to stop flickering
+    // If you ever need to debug Supabase again, re-enable the block below:
 
-        console.log('🔥 Testing direct save functionality...');
-        await directSaveTest('app_test', 'App loaded at ' + new Date().toISOString());
-        console.log('🎉 Direct save test passed!');
-
-        console.log('🔧 Setting up storage bucket...');
-        await runFullSetup();
-        console.log('✅ Storage setup completed!');
-      } catch (err) {
-        console.error('❌ Supabase test failed:', err);
-      }
-    };
-
-    runCriticalTests();
-  }
+    // const runCriticalTests = async () => {
+    //     console.log('🚨 RUNNING CRITICAL SUPABASE TESTS...');
+    //     const connected = await testSupabaseConnection();
+    //     if (!connected) {
+    //         console.error('💥 CRITICAL: Supabase connection failed!');
+    //         return;
+    //     }
+    //     try {
+    //         await directSaveTest('app_test', 'App loaded at ' + new Date().toISOString());
+    //         console.log('🎉 CRITICAL SUCCESS: Direct save test passed!');
+    //     } catch (err) {
+    //         console.error('💥 CRITICAL: Direct save test failed:', err);
+    //     }
+    //     try {
+    //         await runFullSetup();
+    //         console.log('✅ Storage setup completed!');
+    //     } catch (err) {
+    //         console.error('❌ Storage setup failed:', err);
+    //     }
+    // };
+    // runCriticalTests();
 }, []);
+
 
     return (_jsx(Router, { children: _jsx(AuthProvider, { children: _jsxs("div", { className: "min-h-screen bg-white", children: [_jsx(Header, {}), _jsxs("main", { children: [_jsx(Hero, {}), _jsx(About, {}), _jsx(Skills, {}), _jsx(Projects, {}), _jsx(Certifications, {}), _jsx(Contact, {})] }), _jsx(Footer, {}), _jsx(Toaster, { position: "top-right", toastOptions: {
                             duration: 4000,
