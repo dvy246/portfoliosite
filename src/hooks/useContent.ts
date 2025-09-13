@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useContentContext } from '../contexts/ContentContext';
+import { usePageContent } from '../contexts/PageContentContext';
 
 interface UseContentOptions {
   preload?: boolean;
@@ -9,31 +10,56 @@ interface UseContentOptions {
 export const useContent = (name: string, options: UseContentOptions = {}) => {
   const { preload = true, fallback = '' } = options;
   const [error, setError] = useState<string | null>(null);
-  
-  // Use ContentContext - this hook now requires ContentProvider to be available
-  const { 
-    getContent, 
-    saveContent: contextSaveContent, 
-    preloadContent, 
-    isLoading, 
+  const isMountedRef = React.useRef(true);
+
+  const { isPageLoading } = usePageContent();
+  const contentContext = useContentContext();
+
+  const {
+    getContent,
+    saveContent: contextSaveContent,
+    preloadContent,
+    isLoading,
     failedItems,
     retryFailedContent,
     error: contextError,
-    // Enhanced cache management
     refreshContent,
     isContentStale
-  } = useContentContext();
-  
+  } = contentContext;
+
   // Preload this content if requested
   useEffect(() => {
+    isMountedRef.current = true;
     if (preload) {
-      preloadContent([name]);
+      console.debug(`[useContent] Starting fetch for: ${name}`);
+      preloadContent([name])
+        .then(() => {
+          if (isMountedRef.current) {
+            console.debug(`[useContent] Data received for: ${name}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[useContent] Fetch error for ${name}:`, err);
+        })
+        .finally(() => {
+          if (isMountedRef.current) {
+            console.debug(`[useContent] Setting loading to false for: ${name}`);
+          }
+        });
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [name, preload, preloadContent]);
 
   // Get content from cache - returns immediately if available
   const content = getContent(name, fallback);
   
+  // Add debug logs to trace content fetching and fallback usage
+  console.debug(`[useContent] Content fetched for: ${name}, Content:`, content);
+  console.debug(`[useContent] Fallback used for: ${name}, Fallback:`, fallback);
+
   // Check if this specific content item failed to load
   const hasFailed = failedItems.has(name);
   
@@ -56,7 +82,6 @@ export const useContent = (name: string, options: UseContentOptions = {}) => {
     }
   }, [name, retryFailedContent]);
 
-  // Enhanced cache management methods
   const refreshContentItem = useCallback(async () => {
     try {
       setError(null);
@@ -73,7 +98,7 @@ export const useContent = (name: string, options: UseContentOptions = {}) => {
     saveContent,
     retryContent,
     refreshContent: refreshContentItem,
-    isLoading,
+    isLoading: isLoading || isPageLoading,
     error: error || (hasFailed ? contextError : null),
     hasFailed,
     isStale

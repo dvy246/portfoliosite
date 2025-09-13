@@ -1,10 +1,11 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
-import { testSupabaseConnection, directSaveTest } from './lib/supabase';
-import { runFullSetup } from './setupStorage';
+import { PageContentProvider } from './contexts/PageContentContext';
+import { testSupabaseConnection } from './lib/supabase';
+import GlobalErrorBoundary from './components/ErrorBoundary/GlobalErrorBoundary';
+import PageLoader from './components/Loading/PageLoader';
 import Header from './components/Layout/Header';
 import Hero from './components/Sections/Hero';
 import About from './components/Sections/About';
@@ -13,42 +14,71 @@ import Projects from './components/Sections/Projects';
 import Certifications from './components/Sections/Certifications';
 import Contact from './components/Sections/Contact';
 import Footer from './components/Layout/Footer';
-function App() {
-   useEffect(() => {
-    // 🚨 Disabled Supabase tests in production to stop flickering
-    // If you ever need to debug Supabase again, re-enable the block below:
+import { usePageContent } from './contexts/PageContentContext';
 
-    // const runCriticalTests = async () => {
-    //     console.log('🚨 RUNNING CRITICAL SUPABASE TESTS...');
-    //     const connected = await testSupabaseConnection();
-    //     if (!connected) {
-    //         console.error('💥 CRITICAL: Supabase connection failed!');
-    //         return;
-    //     }
-    //     try {
-    //         await directSaveTest('app_test', 'App loaded at ' + new Date().toISOString());
-    //         console.log('🎉 CRITICAL SUCCESS: Direct save test passed!');
-    //     } catch (err) {
-    //         console.error('💥 CRITICAL: Direct save test failed:', err);
-    //     }
-    //     try {
-    //         await runFullSetup();
-    //         console.log('✅ Storage setup completed!');
-    //     } catch (err) {
-    //         console.error('❌ Storage setup failed:', err);
-    //     }
-    // };
-    // runCriticalTests();
-}, []);
+function MainContent() {
+    const { isPageLoading, loadingProgress } = usePageContent();
 
-
-    return (_jsx(Router, { children: _jsx(AuthProvider, { children: _jsxs("div", { className: "min-h-screen bg-white", children: [_jsx(Header, {}), _jsxs("main", { children: [_jsx(Hero, {}), _jsx(About, {}), _jsx(Skills, {}), _jsx(Projects, {}), _jsx(Certifications, {}), _jsx(Contact, {})] }), _jsx(Footer, {}), _jsx(Toaster, { position: "top-right", toastOptions: {
-                            duration: 4000,
-                            style: {
-                                background: '#1e293b',
-                                color: '#fff',
-                                borderRadius: '12px',
-                            },
-                        } })] }) }) }));
+    return (
+        <>
+            <PageLoader isLoading={isPageLoading} progress={loadingProgress} />
+            <div className={`min-h-screen bg-white ${isPageLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
+                <Header />
+                <main>
+                    <Hero />
+                    <About />
+                    <Skills />
+                    <Projects />
+                    <Certifications />
+                    <Contact />
+                </main>
+                <Footer />
+            </div>
+        </>
+    );
 }
+
+function App() {
+    useEffect(() => {
+        const initializeApp = async () => {
+            try {
+                const connected = await testSupabaseConnection();
+                if (!connected) {
+                    console.error('💥 CRITICAL: Supabase connection failed!');
+                    return;
+                }
+                console.log('✅ Supabase connection initialized');
+            } catch (err) {
+                console.error('❌ Supabase initialization error:', err);
+            }
+        };
+        initializeApp();
+    }, []);
+
+    return (
+        <Router>
+            <GlobalErrorBoundary>
+                <AuthProvider>
+                    <PageContentProvider>
+                        <Suspense fallback={<PageLoader isLoading={true} progress={0} />}>
+                            <MainContent />
+                            <Toaster
+                                position="top-right"
+                                toastOptions={{
+                                    duration: 4000,
+                                    style: {
+                                        background: '#1e293b',
+                                        color: '#fff',
+                                        borderRadius: '12px',
+                                    },
+                                }}
+                            />
+                        </Suspense>
+                    </PageContentProvider>
+                </AuthProvider>
+            </GlobalErrorBoundary>
+        </Router>
+    );
+}
+
 export default App;

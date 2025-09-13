@@ -7,8 +7,15 @@ import './__mocks__/viteMock';
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => React.createElement('div', props, children),
-    button: ({ children, ...props }: any) => React.createElement('button', props, children),
+    // Filter motion props to avoid React warning about unknown DOM attributes
+    div: ({ children, ...props }: any) => {
+      const { initial, animate, whileHover, whileTap, transition, viewport, ...rest } = props || {};
+      return React.createElement('div', rest, children);
+    },
+    button: ({ children, ...props }: any) => {
+      const { initial, animate, whileHover, whileTap, transition, viewport, ...rest } = props || {};
+      return React.createElement('button', rest, children);
+    },
   },
   AnimatePresence: ({ children }: any) => children,
 }));

@@ -176,6 +176,20 @@ const getRelatedContentPatterns = (contentName: string): RegExp[] => {
 /**
  * Enhanced content cache implementation with intelligent invalidation and expiration
  */
+const getFallbackContent = (name: string): string => {
+  const fallbacks: Record<string, string> = {
+    'hero_title': 'Welcome to My Portfolio',
+    'hero_subtitle': 'Software Developer & AI Specialist',
+    'hero_badge': 'Available for Projects',
+    'about_title': 'About Me',
+    'skills_title': 'Skills & Expertise',
+    'skills_subtitle': 'My Technical Proficiencies',
+    'projects_title': 'Featured Projects',
+    'contact_title': 'Get in Touch',
+  };
+  return fallbacks[name] || 'Content loading...';
+};
+
 export class ContentCache {
   private cache = new Map<string, { 
     content: string; 
@@ -184,36 +198,58 @@ export class ContentCache {
     version: number;
     isStale: boolean;
   }>();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private readonly STALE_DURATION = 2 * 60 * 1000; // 2 minutes - mark as stale but keep serving
+  private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+  private readonly STALE_DURATION = 10 * 60 * 1000; // 10 minutes - mark as stale but keep serving
+  private readonly DEBOUNCE_DURATION = 200; // 200ms debounce for updates
   private invalidationCallbacks = new Set<(name: string) => void>();
   private refreshPromises = new Map<string, Promise<void>>();
 
   /**
    * Set content in cache with metadata
    */
+  private pendingUpdates = new Map<string, NodeJS.Timeout>();
+  
   set(name: string, content: string, options: { 
     lastModified?: number; 
     version?: number; 
-    skipCallbacks?: boolean 
+    skipCallbacks?: boolean;
+    immediate?: boolean;
   } = {}): void {
     const now = Date.now();
     const existing = this.cache.get(name);
+    const newVersion = options.version || (existing?.version || 0) + 1;
     
-    this.cache.set(name, {
-      content,
-      timestamp: now,
-      lastModified: options.lastModified || now,
-      version: options.version || (existing?.version || 0) + 1,
-      isStale: false
-    });
-
-    // Notify components of cache update if not skipping callbacks
-    if (!options.skipCallbacks) {
-      this.notifyInvalidation(name);
+    // Clear any pending update for this content
+    if (this.pendingUpdates.has(name)) {
+      clearTimeout(this.pendingUpdates.get(name));
+      this.pendingUpdates.delete(name);
     }
+    
+    const updateCache = () => {
+      this.cache.set(name, {
+        content,
+        timestamp: now,
+        lastModified: options.lastModified || now,
+        version: newVersion,
+        isStale: false
+      });
 
-    console.log(`📦 CACHE SET: "${name}" (v${this.cache.get(name)?.version})`);
+      // Notify components of cache update if not skipping callbacks
+      if (!options.skipCallbacks) {
+        this.notifyInvalidation(name);
+      }
+
+      console.log(`📦 CACHE SET: "${name}" (v${newVersion})`);
+    };
+
+    // If immediate update is requested or content is new, update immediately
+    if (options.immediate || !existing) {
+      updateCache();
+    } else {
+      // Otherwise debounce the update
+      const timeout = setTimeout(updateCache, this.DEBOUNCE_DURATION);
+      this.pendingUpdates.set(name, timeout);
+    }
   }
 
   /**
@@ -406,45 +442,107 @@ export class ContentCache {
     });
   }
 
+  private backgroundRefreshQueue = new Set<string>();
+  private backgroundRefreshTimeout: NodeJS.Timeout | null = null;
+  private readonly REFRESH_BATCH_DELAY = 1000; // 1 second
+
   /**
-   * Background refresh for stale content
+   * Queue background refresh for stale content
    */
   private backgroundRefresh(name: string): void {
-    // Avoid duplicate refresh requests
-    if (this.refreshPromises.has(name)) {
+    // Skip if already queued or has a pending refresh
+    if (this.backgroundRefreshQueue.has(name) || this.refreshPromises.has(name)) {
       return;
     }
 
-    const refreshPromise = this.performBackgroundRefresh(name);
-    this.refreshPromises.set(name, refreshPromise);
+    // Add to queue
+    this.backgroundRefreshQueue.add(name);
 
-    refreshPromise.finally(() => {
-      this.refreshPromises.delete(name);
-    });
+    // Clear existing timeout
+    if (this.backgroundRefreshTimeout) {
+      clearTimeout(this.backgroundRefreshTimeout);
+    }
+
+    // Schedule batch refresh
+    this.backgroundRefreshTimeout = setTimeout(() => {
+      this.processBatchRefresh();
+    }, this.REFRESH_BATCH_DELAY);
   }
 
   /**
-   * Perform the actual background refresh
+   * Process queued background refreshes in batch
    */
-  private async performBackgroundRefresh(name: string): Promise<void> {
+  private async processBatchRefresh(): Promise<void> {
+    if (this.backgroundRefreshQueue.size === 0) return;
+
+    const batchNames = Array.from(this.backgroundRefreshQueue);
+    this.backgroundRefreshQueue.clear();
+
+    console.log(`🔄 BATCH BACKGROUND REFRESH: ${batchNames.join(', ')}`);
+
     try {
-      console.log(`🔄 BACKGROUND REFRESH: "${name}"`);
+      const refreshPromise = this.performBatchRefresh(batchNames);
+      batchNames.forEach(name => this.refreshPromises.set(name, refreshPromise));
+
+      await refreshPromise;
+
+      batchNames.forEach(name => this.refreshPromises.delete(name));
+    } catch (error) {
+      console.error('❌ BATCH REFRESH ERROR:', error);
+      // Clear promises on error
+      batchNames.forEach(name => this.refreshPromises.delete(name));
+    }
+  }
+
+  /**
+   * Perform batch refresh with optimistic updates
+   */
+  private async performBatchRefresh(names: string[]): Promise<void> {
+    try {
+      const result = await bulkFetchContent(names);
       
-      // Fetch fresh content
-      const result = await bulkFetchContent([name]);
-      
-      if (!result.error && result.content[name] !== undefined) {
+      if (!result.error) {
         // Update cache with fresh content
-        this.set(name, result.content[name], { 
-          skipCallbacks: false // Notify components of fresh content
+        Object.entries(result.content).forEach(([name, content]) => {
+          this.set(name, content, { 
+            skipCallbacks: true, // Skip individual callbacks
+            immediate: true // Update immediately
+          });
         });
-        console.log(`✅ BACKGROUND REFRESH SUCCESS: "${name}"`);
+
+        // Single batch notification
+        this.notifyBatchUpdate(names);
+        console.log(`✅ BATCH REFRESH SUCCESS: ${names.join(', ')}`);
       } else {
-        console.warn(`⚠️ BACKGROUND REFRESH FAILED: "${name}"`, result.error);
+        console.warn(`⚠️ BATCH REFRESH FAILED:`, result.error);
+        // Set fallback content
+        names.forEach(name => {
+          this.set(name, getFallbackContent(name), {
+            skipCallbacks: true,
+            immediate: true
+          });
+        });
+        // Single notification for fallback updates
+        this.notifyBatchUpdate(names);
       }
     } catch (error) {
-      console.error(`❌ BACKGROUND REFRESH ERROR: "${name}"`, error);
+      console.error(`❌ BATCH REFRESH ERROR:`, error);
+      throw error;
     }
+  }
+
+  /**
+   * Notify all registered callbacks of batch update
+   */
+  private notifyBatchUpdate(names: string[]): void {
+    // Single update event for all names
+    this.invalidationCallbacks.forEach(callback => {
+      try {
+        names.forEach(name => callback(name));
+      } catch (error) {
+        console.error('Cache batch update callback error:', error);
+      }
+    });
   }
 
   /**

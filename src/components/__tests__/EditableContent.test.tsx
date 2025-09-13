@@ -105,6 +105,7 @@ describe('EditableContent', () => {
       />
     );
 
-    expect(screen.getByText('Failed to load content')).toBeInTheDocument();
+    // The inline fallback renders a retry button when hasFailed is true
+    expect(screen.getByTitle(`Retry loading "${mockName}"`)).toBeInTheDocument();
   });
 });

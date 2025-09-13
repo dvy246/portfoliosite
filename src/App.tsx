@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { PageContentProvider, usePageContent } from './contexts/PageContentContext';
-import { testSupabaseConnection, directSaveTest } from './lib/supabase';
-import { runFullSetup } from './setupStorage';
+import { testSupabaseConnection } from './lib/supabase';
+import GlobalErrorBoundary from './components/ErrorBoundary/GlobalErrorBoundary';
+import PageLoader from './components/Loading/PageLoader';
 import Header from './components/Layout/Header';
 import Hero from './components/Sections/Hero';
 import About from './components/Sections/About';
@@ -13,55 +14,15 @@ import Projects from './components/Sections/Projects';
 import Certifications from './components/Sections/Certifications';
 import Contact from './components/Sections/Contact';
 import Footer from './components/Layout/Footer';
-import PageLoader from './components/Loading/PageLoader';
 
-// Main App Content Component
-const AppContent: React.FC = () => {
+const MainContent: React.FC = () => {
   const { isPageLoading, loadingProgress } = usePageContent();
-
-  useEffect(() => {
-    // Initialize Supabase connection in production-ready way
-    const initializeApp = async () => {
-      try {
-        // Only run tests in development
-        if (import.meta.env.DEV) {
-          console.log('🔧 Development mode: Testing Supabase connection...');
-          const connected = await testSupabaseConnection();
-          if (connected) {
-            console.log('✅ Supabase connection successful');
-            // Setup storage in development
-            await runFullSetup();
-          }
-        } else {
-          // Production: Silent initialization
-          await testSupabaseConnection();
-        }
-      } catch (err) {
-        // Silent fail in production, log in development
-        if (import.meta.env.DEV) {
-          console.error('❌ App initialization error:', err);
-        }
-      }
-    };
-    
-    initializeApp();
-  }, []);
-
   return (
     <>
-      {/* Simplified loading - only show for very brief initial load */}
-      {isPageLoading && (
-        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 border-2 border-gold-200 border-t-gold-600 rounded-full animate-spin"></div>
-            <p className="text-navy-600 font-medium">Loading Portfolio...</p>
-          </div>
-        </div>
-      )}
-      
-      <div className={`min-h-screen bg-white transition-opacity duration-300 ${
-        isPageLoading ? 'opacity-0' : 'opacity-100'
-      }`}>
+      {/* Display the PageLoader overlay during loading */}
+      <PageLoader isLoading={isPageLoading} progress={loadingProgress} />
+      {/* Main content fades in when loading is complete */}
+      <div className={`min-h-screen bg-white ${isPageLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
         <Header />
         <main>
           <Hero />
@@ -72,32 +33,48 @@ const AppContent: React.FC = () => {
           <Contact />
         </main>
         <Footer />
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#1e293b',
-              color: '#fff',
-              borderRadius: '12px',
-            },
-          }}
-        />
       </div>
     </>
   );
 };
 
-function App() {
+const App: React.FC = () => {
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        const connected = await testSupabaseConnection();
+        if (!connected) {
+          console.error('💥 CRITICAL: Supabase connection failed!');
+          return;
+        }
+        console.log('✅ Supabase connection initialized');
+      } catch (err) {
+        console.error('❌ Supabase initialization error:', err);
+      }
+    };
+    initializeApp();
+  }, []);
+
   return (
     <Router>
-      <AuthProvider>
-        <PageContentProvider>
-          <AppContent />
-        </PageContentProvider>
-      </AuthProvider>
+      <GlobalErrorBoundary>
+        <AuthProvider>
+          <PageContentProvider>
+            <Suspense fallback={<PageLoader isLoading={true} progress={0} />}>
+              <MainContent />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: { background: '#1e293b', color: '#fff', borderRadius: '12px' },
+                }}
+              />
+            </Suspense>
+          </PageContentProvider>
+        </AuthProvider>
+      </GlobalErrorBoundary>
     </Router>
   );
-}
+};
 
 export default App;

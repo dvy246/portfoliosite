@@ -25,56 +25,67 @@ const SKILLS_CONTENT_NAMES = [
 ];
 
 const SkillsContent: React.FC = () => {
-  const { content } = useStableContent(SKILLS_CONTENT_NAMES);
+  const { content, isLoading, error } = useStableContent(SKILLS_CONTENT_NAMES);
   const { isSectionLoading } = useSectionLoader('skills', SKILLS_CONTENT_NAMES);
 
-  // Stable skill categories - no flickering with static fallbacks
-  const skillCategories = [
-    {
-      title: content.skills_ai_title,
-      icon: Brain,
-      color: 'from-blue-500 to-blue-600',
-      skills: [
-        { name: content.skill_ai_1, level: 95, key: 'skill_ai_1' },
-        { name: content.skill_ai_2, level: 93, key: 'skill_ai_2' },
-        { name: content.skill_ai_3, level: 91, key: 'skill_ai_3' },
-        { name: content.skill_ai_4, level: 89, key: 'skill_ai_4' },
-        { name: content.skill_ai_5, level: 87, key: 'skill_ai_5' }
-      ],
-      titleKey: 'skills_ai_title'
-    },
-    {
-      title: content.skills_business_title,
-      icon: BarChart3,
-      color: 'from-blue-400 to-blue-500',
-      skills: [
-        { name: content.skill_business_1, level: 92, key: 'skill_business_1' },
-        { name: content.skill_business_2, level: 91, key: 'skill_business_2' },
-        { name: content.skill_business_3, level: 90, key: 'skill_business_3' },
-        { name: content.skill_business_4, level: 89, key: 'skill_business_4' },
-        { name: content.skill_business_5, level: 88, key: 'skill_business_5' }
-      ],
-      titleKey: 'skills_business_title'
-    },
-    {
-      title: content.skills_technical_title,
-      icon: Code,
-      color: 'from-blue-600 to-blue-700',
-      skills: [
-        { name: content.skill_technical_1, level: 95, key: 'skill_technical_1' },
-        { name: content.skill_technical_2, level: 93, key: 'skill_technical_2' },
-        { name: content.skill_technical_3, level: 91, key: 'skill_technical_3' },
-        { name: content.skill_technical_4, level: 89, key: 'skill_technical_4' },
-        { name: content.skill_technical_5, level: 87, key: 'skill_technical_5' }
-      ],
-      titleKey: 'skills_technical_title'
-    }
-  ];
+  if (error) {
+    return (
+      <div className="text-center text-red-500">
+        Failed to load skills content. Please try refreshing the page.
+      </div>
+    );
+  }
 
-  // No skeleton loading needed - using stable content with static fallbacks
+  // Build and memoize skill categories from stable content so the array
+  // identity only changes when `content` changes. This avoids re-creating
+  // category arrays every render which can cause child re-renders and
+  // re-trigger animations.
+  const memoizedCategories = React.useMemo(() => {
+    return [
+      {
+        title: content.skills_ai_title,
+        icon: Brain,
+        color: 'from-blue-500 to-blue-600',
+        skills: [
+          { name: content.skill_ai_1, level: 95, key: 'skill_ai_1' },
+          { name: content.skill_ai_2, level: 93, key: 'skill_ai_2' },
+          { name: content.skill_ai_3, level: 91, key: 'skill_ai_3' },
+          { name: content.skill_ai_4, level: 89, key: 'skill_ai_4' },
+          { name: content.skill_ai_5, level: 87, key: 'skill_ai_5' }
+        ],
+        titleKey: 'skills_ai_title'
+      },
+      {
+        title: content.skills_business_title,
+        icon: BarChart3,
+        color: 'from-blue-400 to-blue-500',
+        skills: [
+          { name: content.skill_business_1, level: 92, key: 'skill_business_1' },
+          { name: content.skill_business_2, level: 91, key: 'skill_business_2' },
+          { name: content.skill_business_3, level: 90, key: 'skill_business_3' },
+          { name: content.skill_business_4, level: 89, key: 'skill_business_4' },
+          { name: content.skill_business_5, level: 88, key: 'skill_business_5' }
+        ],
+        titleKey: 'skills_business_title'
+      },
+      {
+        title: content.skills_technical_title,
+        icon: Code,
+        color: 'from-blue-600 to-blue-700',
+        skills: [
+          { name: content.skill_technical_1, level: 95, key: 'skill_technical_1' },
+          { name: content.skill_technical_2, level: 93, key: 'skill_technical_2' },
+          { name: content.skill_technical_3, level: 91, key: 'skill_technical_3' },
+          { name: content.skill_technical_4, level: 89, key: 'skill_technical_4' },
+          { name: content.skill_technical_5, level: 87, key: 'skill_technical_5' }
+        ],
+        titleKey: 'skills_technical_title'
+      }
+    ];
+  }, [content]);
 
   return (
-        <section className="py-20 bg-gradient-to-br from-gray-900 to-black">
+    <section id="skills" className="py-20 bg-gradient-to-br from-gray-900 to-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16 transform-gpu">
           <h2 className="text-3xl font-bold text-white mb-4">
@@ -93,13 +104,18 @@ const SkillsContent: React.FC = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {skillCategories.map((category, categoryIndex) => (
+          {isSectionLoading && (
+            <div className="col-span-full">
+              <ContentSkeleton type="paragraph" lines={3} className="max-w-3xl mx-auto" />
+            </div>
+          )}
+          {memoizedCategories.map((category, categoryIndex) => (
             <motion.div
-              key={category.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: categoryIndex * 0.1, duration: 0.6 }}
-              viewport={{ once: true, margin: "-100px" }}
+              key={category.titleKey}
+              initial={false}
+              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
               className="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl border border-blue-500/10 hover:border-blue-500/20 transition-all duration-300 transform-gpu"
             >
               <div className="flex items-center mb-6">
@@ -117,11 +133,8 @@ const SkillsContent: React.FC = () => {
               {/* Individual Editable Skills */}
               <div className="space-y-4">
                 {category.skills.map((skill, skillIndex) => (
-                  <motion.div
+                  <div
                     key={skill.key}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: (categoryIndex * 0.1) + (skillIndex * 0.05), duration: 0.4 }}
                     className="space-y-2"
                   >
                     <div className="flex justify-between items-center">
@@ -134,14 +147,16 @@ const SkillsContent: React.FC = () => {
                     </div>
                     <div className="w-full bg-gray-800 rounded-full h-2">
                       <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${skill.level}%` }}
-                        transition={{ delay: (categoryIndex * 0.2) + (skillIndex * 0.1) + 0.3, duration: 1 }}
+                        // If the section was loading, animate from 0 to value; otherwise render at final width
+                        initial={isSectionLoading ? { width: 0 } : false}
                         viewport={{ once: true }}
+                        animate={{ width: `${skill.level}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                        style={{ width: isSectionLoading ? undefined : `${skill.level}%` }}
                         className={`h-2 rounded-full bg-gradient-to-r ${category.color}`}
                       />
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </motion.div>
@@ -150,10 +165,9 @@ const SkillsContent: React.FC = () => {
 
         {/* Key Differentiators */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          viewport={{ once: true, margin: "-50px" }}
+          initial={false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           className="mt-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white transform-gpu"
         >
           <div className="text-center mb-8">

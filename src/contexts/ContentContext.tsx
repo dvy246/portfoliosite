@@ -48,36 +48,51 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
   const RETRY_DELAY_BASE = 1000; // 1 second base delay
 
   const bulkFetchContentItems = useCallback(async (names: string[], isRetry: boolean = false): Promise<void> => {
-    // Check cache first and filter out already cached items
-    const cachedContent: Record<string, string> = {};
-    const namesToFetch: string[] = [];
+    // Batch state updates to prevent multiple re-renders
+    const stateUpdates = {
+      content: {} as Record<string, string>,
+      loadedNames: new Set<string>(),
+      failedItemsToRemove: new Set<string>(),
+    };
 
+    // First pass: Check cache and collect all state updates
     names.forEach(name => {
       const cached = globalContentCache.get(name);
       if (cached !== null) {
-        cachedContent[name] = cached;
-        // Remove from failed items if it's now cached
-        setFailedItems(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(name);
-          return newSet;
-        });
-      } else if (!loadedNames.has(name) && !fetchPromises.has(name)) {
-        namesToFetch.push(name);
+        stateUpdates.content[name] = cached;
+        stateUpdates.loadedNames.add(name);
+        stateUpdates.failedItemsToRemove.add(name);
       }
     });
 
-    // Update state with cached content immediately
-    if (Object.keys(cachedContent).length > 0) {
-      setContent(prev => ({ ...prev, ...cachedContent }));
-      setLoadedNames(prev => new Set([...prev, ...Object.keys(cachedContent)]));
+    // Apply batched state updates for cached items
+    if (Object.keys(stateUpdates.content).length > 0) {
+      setContent(prev => ({ ...prev, ...stateUpdates.content }));
+      setLoadedNames(prev => new Set([...prev, ...stateUpdates.loadedNames]));
+      if (stateUpdates.failedItemsToRemove.size > 0) {
+        setFailedItems(prev => {
+          const newSet = new Set(prev);
+          stateUpdates.failedItemsToRemove.forEach(name => newSet.delete(name));
+          return newSet;
+        });
+      }
     }
+
+    // Determine which items need to be fetched
+    const namesToFetch = names.filter(name => 
+      !stateUpdates.loadedNames.has(name) && 
+      !loadedNames.has(name) && 
+      !fetchPromises.has(name)
+    );
 
     if (namesToFetch.length === 0) {
       return;
     }
 
     console.log('🔄 CONTENT PROVIDER BULK FETCH for:', namesToFetch, isRetry ? '(RETRY)' : '');
+
+    // Add debug logs to trace bulk fetch and fallback content
+    console.debug(`[ContentContext] Bulk fetch initiated for:`, namesToFetch);
 
     try {
       setError(null);
@@ -130,6 +145,9 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
       if (!isRetry) {
         scheduleRetry(namesToFetch);
       }
+
+      // Debug log for fallback content
+      console.debug(`[ContentContext] Fallback content applied for:`, fallbackContent);
     }
   }, [loadedNames, fetchPromises]);
 
@@ -387,7 +405,25 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
   // Preload content on mount if preloadNames provided
   useEffect(() => {
     if (preloadNames.length > 0) {
-      preloadContent(preloadNames);
+      const loadContent = async () => {
+        try {
+          await preloadContent(preloadNames);
+        } catch (error) {
+          console.error('Failed to load content:', error);
+          // Set fallback content for all requested items
+          const fallbackContent: Record<string, string> = {};
+          preloadNames.forEach(name => {
+            fallbackContent[name] = getFallbackContent(name);
+          });
+          setContent(prev => ({
+            ...prev,
+            ...fallbackContent
+          }));
+          setIsLoading(false);
+        }
+      };
+      
+      loadContent();
     }
   }, [preloadNames, preloadContent]);
 

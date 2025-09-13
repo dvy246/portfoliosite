@@ -1,5 +1,20 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { STATIC_CONTENT } from '../data/staticContent';
 import { ContentProvider, useContentContext } from './ContentContext';
+
+interface LoadingState {
+  sectionsLoaded: Set<string>;
+  registeredSections: Map<string, string[]>;
+  loadStartTime: number;
+  updateTimeout: NodeJS.Timeout | null;
+}
+
+interface PageState {
+  isPageLoading: boolean;
+  loadingProgress: number;
+  initialLoadComplete: boolean;
+  contentReady: boolean;
+}
 
 interface PageContentContextType {
   isPageLoading: boolean;
@@ -8,6 +23,8 @@ interface PageContentContextType {
   registerSection: (sectionName: string, contentNames: string[]) => void;
   markSectionLoaded: (sectionName: string) => void;
   allSectionsLoaded: boolean;
+  initialLoadComplete: boolean;
+  contentReady: boolean;
 }
 
 const PageContentContext = createContext<PageContentContextType | undefined>(undefined);
@@ -48,61 +65,187 @@ const ALL_PAGE_CONTENT_NAMES = [
 ];
 
 export const PageContentProvider: React.FC<PageContentProviderProps> = ({ children }) => {
-  const [sectionsLoaded, setSectionsLoaded] = useState<Set<string>>(new Set());
-  const [registeredSections, setRegisteredSections] = useState<Map<string, string[]>>(new Map());
-  const [isPageLoading, setIsPageLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
+  // Unified state management
+  const [state, setState] = useState({
+    loading: {
+      isPageLoading: true,
+      loadingProgress: 0,
+      initialLoadComplete: false,
+      contentReady: false,
+      sectionsLoaded: new Set<string>(),
+      registeredSections: new Map<string, string[]>(),
+    },
+    startTime: Date.now()
+  });
 
+  // Memoized derived state
+  const allSectionsLoaded = React.useMemo(() => {
+    const { sectionsLoaded, registeredSections } = state.loading;
+    return registeredSections.size > 0 && sectionsLoaded.size === registeredSections.size;
+  }, [state.loading]);
+
+  // Debounced state updates
+  const debouncedUpdateRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function for safe state updates
+  const updateState = useCallback((updates: Partial<typeof state.loading>) => {
+    if (debouncedUpdateRef.current) {
+      clearTimeout(debouncedUpdateRef.current);
+    }
+
+    debouncedUpdateRef.current = setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        loading: {
+          ...prev.loading,
+          ...updates
+        }
+      }));
+    }, 50);
+  }, []);
+
+  // Section registration
   const registerSection = useCallback((sectionName: string, contentNames: string[]) => {
-    setRegisteredSections(prev => new Map(prev).set(sectionName, contentNames));
+    console.debug(`[PageContent] Registering section: ${sectionName} with content:`, contentNames);
+    setState(prev => {
+      const newSections = new Map(prev.loading.registeredSections);
+      newSections.set(sectionName, contentNames);
+      return {
+        ...prev,
+        loading: {
+          ...prev.loading,
+          registeredSections: newSections
+        }
+      };
+    });
   }, []);
 
+  // Section loading completion
   const markSectionLoaded = useCallback((sectionName: string) => {
-    setSectionsLoaded(prev => new Set(prev).add(sectionName));
+    console.debug(`[PageContent] Marking section as loaded: ${sectionName}`);
+    setState(prev => {
+      const newLoaded = new Set(prev.loading.sectionsLoaded);
+      newLoaded.add(sectionName);
+
+      const progress = prev.loading.registeredSections.size === 0 ? 0 :
+        (newLoaded.size / prev.loading.registeredSections.size) * 100;
+
+      console.debug(`[PageContent] Updated progress: ${progress}%`);
+
+      return {
+        ...prev,
+        loading: {
+          ...prev.loading,
+          sectionsLoaded: newLoaded,
+          loadingProgress: progress,
+          isPageLoading: progress < 100,
+          contentReady: progress === 100
+        }
+      };
+    });
   }, []);
 
-  const allSectionsLoaded = registeredSections.size > 0 && sectionsLoaded.size === registeredSections.size;
-
-  // Simplified loading logic - shorter delays for better UX
+  // Loading state management
   useEffect(() => {
-    if (registeredSections.size === 0) {
-      setLoadingProgress(0);
-      return;
+    if (!state.loading.initialLoadComplete) {
+      const minLoadTime = 500; // Minimum loading time to prevent flashing
+      const elapsedTime = Date.now() - state.startTime;
+      
+      const initTimer = setTimeout(() => {
+        setState(prev => ({
+          ...prev,
+          loading: {
+            ...prev.loading,
+            initialLoadComplete: true
+          }
+        }));
+      }, Math.max(0, minLoadTime - elapsedTime));
+      
+      return () => clearTimeout(initTimer);
     }
 
-    const progress = (sectionsLoaded.size / registeredSections.size) * 100;
-    setLoadingProgress(progress);
+    // Update loading progress
+    if (state.loading.registeredSections.size > 0) {
+      const progress = (state.loading.sectionsLoaded.size / state.loading.registeredSections.size) * 100;
+      
+      if (debouncedUpdateRef.current) {
+        clearTimeout(debouncedUpdateRef.current);
+      }
 
-    // Shorter delay for faster loading
-    if (progress === 100) {
-      const timer = setTimeout(() => {
-        setIsPageLoading(false);
-      }, 200);
-      return () => clearTimeout(timer);
+      debouncedUpdateRef.current = setTimeout(() => {
+        setState(prev => ({
+          ...prev,
+          loading: {
+            ...prev.loading,
+            loadingProgress: progress,
+            isPageLoading: progress < 100,
+            contentReady: progress === 100
+          }
+        }));
+      }, 50);
     }
-  }, [sectionsLoaded.size, registeredSections.size]);
 
-  // Faster initial loading
+    return () => {
+      if (debouncedUpdateRef.current) {
+        clearTimeout(debouncedUpdateRef.current);
+      }
+    };
+  }, [
+    state.loading.initialLoadComplete,
+    state.loading.sectionsLoaded.size,
+    state.loading.registeredSections.size,
+    state.startTime
+  ]);
+
+  // Safety timeout effect
   useEffect(() => {
-    setIsPageLoading(true);
-    setLoadingProgress(0);
-    
-    // Auto-complete loading after 2 seconds max to prevent infinite loading
-    const maxLoadTimer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 2000);
-    
-    return () => clearTimeout(maxLoadTimer);
-  }, []);
+    const safetyTimeout = setTimeout(() => {
+      if (state.loading.isPageLoading && state.loading.registeredSections.size > 0) {
+        console.warn('Safety timeout: forcing content display');
+        setState(prev => ({
+          ...prev,
+          loading: {
+            ...prev.loading,
+            isPageLoading: false,
+            contentReady: true,
+            loadingProgress: 100
+          }
+        }));
+      }
+    }, 5000);
 
-  const contextValue: PageContentContextType = {
-    isPageLoading,
-    loadingProgress,
-    sectionsLoaded,
+    return () => clearTimeout(safetyTimeout);
+  }, [state.loading.isPageLoading, state.loading.registeredSections.size]);
+
+  // Create context value with memoization to prevent unnecessary re-renders
+  const contextValue = React.useMemo<PageContentContextType>(() => ({
+    isPageLoading: state.loading.isPageLoading,
+    loadingProgress: state.loading.loadingProgress,
+    sectionsLoaded: state.loading.sectionsLoaded,
+    registerSection,
+    markSectionLoaded,
+    allSectionsLoaded,
+    initialLoadComplete: state.loading.initialLoadComplete,
+    contentReady: state.loading.contentReady
+  }), [
+    state.loading.isPageLoading,
+    state.loading.loadingProgress,
+    state.loading.sectionsLoaded,
+    state.loading.initialLoadComplete,
+    state.loading.contentReady,
     registerSection,
     markSectionLoaded,
     allSectionsLoaded
-  };
+  ]);
+
+  // Clean up effect on unmount
+  useEffect(() => {
+    return () => {
+      if (debouncedUpdateRef.current) {
+        clearTimeout(debouncedUpdateRef.current);
+      }
+    };
+  }, []);
 
   return (
     <PageContentContext.Provider value={contextValue}>
@@ -122,25 +265,60 @@ export const usePageContent = (): PageContentContextType => {
 };
 
 // Hook for sections to register themselves and report loading status
-export const useSectionLoader = (sectionName: string, contentNames: string[]) => {
+interface SectionLoaderResult {
+  isSectionLoading: boolean;
+  isSectionLoaded: boolean;
+}
+
+export const useSectionLoader = (
+  sectionName: string,
+  contentNames: string[]
+): SectionLoaderResult => {
   const { registerSection, markSectionLoaded, sectionsLoaded } = usePageContent();
-  const { isLoading } = useContentContext();
-  
+  const contentContext = useContentContext();
+
+  // Memoize content names array to prevent unnecessary re-renders
+  const memoizedContentNames = React.useMemo(() => contentNames, [contentNames]);
+
   // Register section on mount
   useEffect(() => {
-    registerSection(sectionName, contentNames);
-  }, [registerSection, sectionName, contentNames]);
+    registerSection(sectionName, memoizedContentNames);
+    return () => {
+      // No-op cleanup for now
+    };
+  }, [registerSection, sectionName, memoizedContentNames]);
 
-  // Mark section as loaded when content loading is complete - faster response
+  // Mark section loaded when all its required content keys are present in the content provider
   useEffect(() => {
-    if (!isLoading && !sectionsLoaded.has(sectionName)) {
-      // Immediate marking to reduce flickering
-      markSectionLoaded(sectionName);
-    }
-  }, [isLoading, sectionName, markSectionLoaded, sectionsLoaded]);
+    // If already marked loaded, skip
+    if (sectionsLoaded.has(sectionName)) return;
 
-  return {
-    isSectionLoading: isLoading,
+    // Consider either cached content or static fallback as "present"
+    const allPresent = memoizedContentNames.every(name => {
+      const val = contentContext.getContent(name, '') || (STATIC_CONTENT as any)[name] || '';
+      return val !== '' && val !== undefined && val !== null;
+    });
+
+    if (allPresent) {
+      // Debug log to help trace lifecycle during development
+      // eslint-disable-next-line no-console
+      console.debug(`[PageContent] Section "${sectionName}" all content present — marking loaded`);
+      // Small debounce to avoid rapid state thrash when many sections complete simultaneously
+      const t = setTimeout(() => markSectionLoaded(sectionName), 40);
+      return () => clearTimeout(t);
+    }
+
+    return;
+  }, [contentContext, memoizedContentNames, markSectionLoaded, sectionName, sectionsLoaded]);
+
+  // Return loading state derived from the content provider for this section only
+  const isSectionLoading = !memoizedContentNames.every(name => {
+    const val = contentContext.getContent(name, '');
+    return val !== '' && val !== undefined && val !== null;
+  });
+
+  return React.useMemo(() => ({
+    isSectionLoading,
     isSectionLoaded: sectionsLoaded.has(sectionName)
-  };
+  }), [isSectionLoading, sectionsLoaded, sectionName]);
 };

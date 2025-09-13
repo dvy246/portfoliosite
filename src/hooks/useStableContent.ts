@@ -7,24 +7,38 @@ import { STATIC_CONTENT, ContentKey } from '../data/staticContent';
  * to prevent flickering during loading
  */
 export const useStableContent = (contentNames: string[]) => {
-  const { content, isLoading, saveContent } = useContentSections(contentNames);
+  // Memoize contentNames array to prevent unnecessary re-renders
+  const memoizedContentNames = useMemo(() => contentNames, [contentNames]);
 
-  // Create stable content object with static fallbacks
+  const { content, isLoading, saveContent, error } = useContentSections(memoizedContentNames);
+
+  // Create stable content object with static fallbacks and memoization
   const stableContent = useMemo(() => {
     const result: Record<string, string> = {};
-    
-    contentNames.forEach(name => {
-      // Use loaded content if available, otherwise use static fallback
-      result[name] = content[name] || STATIC_CONTENT[name as ContentKey] || '';
+
+    memoizedContentNames.forEach(name => {
+      // Prioritize existing content to prevent flicker
+      if (content[name]) {
+        result[name] = content[name];
+      } else {
+        // Use static fallback as initial value
+        result[name] = STATIC_CONTENT[name as ContentKey] || '';
+      }
     });
-    
+
+    // Add debug logs to trace stable content derivation
+    console.debug('[useStableContent] Stable content derived:', stableContent);
     return result;
-  }, [content, contentNames]);
+  }, [content, memoizedContentNames]);
+
+  // Debug lifecycle for stable content
+  console.debug('[useStableContent] Stable content initialized for:', memoizedContentNames);
 
   return {
     content: stableContent,
     isLoading,
     saveContent,
+    error,
     // Helper to check if content is from static fallback
     isStatic: (name: string) => !content[name] && !!STATIC_CONTENT[name as ContentKey]
   };
