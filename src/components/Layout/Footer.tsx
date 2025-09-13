@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Shield } from 'lucide-react';
 import { useContentSections } from '../../hooks/useContent';
+import { ContentProvider } from '../../contexts/ContentContext';
 import EditableContent from '../Admin/EditableContent';
 import LoginModal from '../Auth/LoginModal';
 
-const Footer: React.FC = () => {
+// All content names used in the Footer
+const FOOTER_CONTENT_NAMES = [
+  'contact_footer_title',
+  'contact_footer_email',
+  'contact_footer_phone', 
+  'contact_footer_location'
+];
+
+const FooterContent: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const { content } = useContentSections([
-    'contact_footer_title',
-    'contact_footer_email',
-    'contact_footer_phone', 
-    'contact_footer_location'
-  ]);
+  const { content } = useContentSections(FOOTER_CONTENT_NAMES);
 
   return (
     <>
@@ -108,6 +112,15 @@ const Footer: React.FC = () => {
         onClose={() => setIsLoginModalOpen(false)} 
       />
     </>
+  );
+};
+
+// Main Footer component wrapped with ContentProvider for preloading
+const Footer: React.FC = () => {
+  return (
+    <ContentProvider preloadNames={FOOTER_CONTENT_NAMES}>
+      <FooterContent />
+    </ContentProvider>
   );
 };
 

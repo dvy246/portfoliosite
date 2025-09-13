@@ -1,67 +1,77 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, BarChart3, Code, Database, TrendingUp, Zap } from 'lucide-react';
-import { useContentSections } from '../../hooks/useContent';
+import { useStableContent } from '../../hooks/useStableContent';
+import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
+import ContentSkeleton from '../Loading/ContentSkeleton';
+import { ContentErrorBoundary, FallbackContent } from '../ErrorBoundary';
 
-const Skills: React.FC = () => {
-  const { content } = useContentSections([
-    'skills_title',
-    'skills_subtitle',
-    'skills_ai_title',
-    'skills_business_title', 
-    'skills_technical_title',
-    'skills_differentiator_title',
-    'skills_differentiator_subtitle',
-    // Individual AI skills
-    'skill_ai_1', 'skill_ai_2', 'skill_ai_3', 'skill_ai_4', 'skill_ai_5',
-    // Individual Business skills
-    'skill_business_1', 'skill_business_2', 'skill_business_3', 'skill_business_4', 'skill_business_5',
-    // Individual Technical skills
-    'skill_technical_1', 'skill_technical_2', 'skill_technical_3', 'skill_technical_4', 'skill_technical_5'
-  ]);
+// All content names used in the Skills section
+const SKILLS_CONTENT_NAMES = [
+  'skills_title',
+  'skills_subtitle',
+  'skills_ai_title',
+  'skills_business_title', 
+  'skills_technical_title',
+  'skills_differentiator_title',
+  'skills_differentiator_subtitle',
+  // Individual AI skills
+  'skill_ai_1', 'skill_ai_2', 'skill_ai_3', 'skill_ai_4', 'skill_ai_5',
+  // Individual Business skills
+  'skill_business_1', 'skill_business_2', 'skill_business_3', 'skill_business_4', 'skill_business_5',
+  // Individual Technical skills
+  'skill_technical_1', 'skill_technical_2', 'skill_technical_3', 'skill_technical_4', 'skill_technical_5'
+];
 
+const SkillsContent: React.FC = () => {
+  const { content } = useStableContent(SKILLS_CONTENT_NAMES);
+  const { isSectionLoading } = useSectionLoader('skills', SKILLS_CONTENT_NAMES);
+
+  // Stable skill categories - no flickering with static fallbacks
   const skillCategories = [
     {
-      title: content.skills_ai_title || 'AI & Machine Learning',
+      title: content.skills_ai_title,
       icon: Brain,
       color: 'from-blue-500 to-purple-600',
       skills: [
-        { name: content.skill_ai_1 || 'Machine Learning', level: 95, key: 'skill_ai_1' },
-        { name: content.skill_ai_2 || 'Deep Learning', level: 93, key: 'skill_ai_2' },
-        { name: content.skill_ai_3 || 'Natural Language Processing', level: 91, key: 'skill_ai_3' },
-        { name: content.skill_ai_4 || 'Computer Vision', level: 89, key: 'skill_ai_4' },
-        { name: content.skill_ai_5 || 'MLOps', level: 87, key: 'skill_ai_5' }
+        { name: content.skill_ai_1, level: 95, key: 'skill_ai_1' },
+        { name: content.skill_ai_2, level: 93, key: 'skill_ai_2' },
+        { name: content.skill_ai_3, level: 91, key: 'skill_ai_3' },
+        { name: content.skill_ai_4, level: 89, key: 'skill_ai_4' },
+        { name: content.skill_ai_5, level: 87, key: 'skill_ai_5' }
       ],
       titleKey: 'skills_ai_title'
     },
     {
-      title: content.skills_business_title || 'Business Analytics',
+      title: content.skills_business_title,
       icon: BarChart3,
       color: 'from-gold-500 to-orange-600',
       skills: [
-        { name: content.skill_business_1 || 'Financial Modeling', level: 92, key: 'skill_business_1' },
-        { name: content.skill_business_2 || 'Business Intelligence', level: 91, key: 'skill_business_2' },
-        { name: content.skill_business_3 || 'Decision Optimization', level: 90, key: 'skill_business_3' },
-        { name: content.skill_business_4 || 'Market Analysis', level: 89, key: 'skill_business_4' },
-        { name: content.skill_business_5 || 'Strategic Planning', level: 88, key: 'skill_business_5' }
+        { name: content.skill_business_1, level: 92, key: 'skill_business_1' },
+        { name: content.skill_business_2, level: 91, key: 'skill_business_2' },
+        { name: content.skill_business_3, level: 90, key: 'skill_business_3' },
+        { name: content.skill_business_4, level: 89, key: 'skill_business_4' },
+        { name: content.skill_business_5, level: 88, key: 'skill_business_5' }
       ],
       titleKey: 'skills_business_title'
     },
     {
-      title: content.skills_technical_title || 'Technical Stack',
+      title: content.skills_technical_title,
       icon: Code,
       color: 'from-green-500 to-teal-600',
       skills: [
-        { name: content.skill_technical_1 || 'Python', level: 95, key: 'skill_technical_1' },
-        { name: content.skill_technical_2 || 'TensorFlow/PyTorch', level: 93, key: 'skill_technical_2' },
-        { name: content.skill_technical_3 || 'SQL/NoSQL', level: 91, key: 'skill_technical_3' },
-        { name: content.skill_technical_4 || 'Cloud Platforms', level: 89, key: 'skill_technical_4' },
-        { name: content.skill_technical_5 || 'Data Visualization', level: 87, key: 'skill_technical_5' }
+        { name: content.skill_technical_1, level: 95, key: 'skill_technical_1' },
+        { name: content.skill_technical_2, level: 93, key: 'skill_technical_2' },
+        { name: content.skill_technical_3, level: 91, key: 'skill_technical_3' },
+        { name: content.skill_technical_4, level: 89, key: 'skill_technical_4' },
+        { name: content.skill_technical_5, level: 87, key: 'skill_technical_5' }
       ],
       titleKey: 'skills_technical_title'
     }
   ];
+
+  // No skeleton loading needed - using stable content with static fallbacks
 
   return (
     <section id="skills" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
@@ -193,6 +203,28 @@ const Skills: React.FC = () => {
         </motion.div>
       </div>
     </section>
+  );
+};
+
+// Main Skills component with ErrorBoundary - no longer needs ContentProvider wrapper
+const Skills: React.FC = () => {
+  return (
+    <ContentErrorBoundary
+      fallback={
+        <section id="skills" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FallbackContent
+              contentName="Skills Section"
+              fallbackText="This section is temporarily unavailable. Please refresh the page or try again later."
+              showError={true}
+            />
+          </div>
+        </section>
+      }
+      onRetry={() => window.location.reload()}
+    >
+      <SkillsContent />
+    </ContentErrorBoundary>
   );
 };
 

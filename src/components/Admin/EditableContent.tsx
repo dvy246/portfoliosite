@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Edit3, Save, X, Loader } from 'lucide-react';
+import { Edit3, Save, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContent } from '../../hooks/useContent';
+import { InlineFallbackContent } from '../ErrorBoundary';
 
 interface EditableContentProps {
   name: string;
@@ -22,7 +23,7 @@ const EditableContent: React.FC<EditableContentProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const { isAdmin } = useAuth();
-  const { content, saveContent, isLoading, error } = useContent(name);
+  const { content, saveContent, retryContent, error, hasFailed } = useContent(name, { preload: false });
 
   // Use content from database, fallback to defaultContent, then empty string
   const displayContent = content || defaultContent || '';
@@ -69,16 +70,22 @@ const EditableContent: React.FC<EditableContentProps> = ({
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className={`${className} flex items-center space-x-2`}>
-        <Loader className="w-4 h-4 animate-spin text-navy-400" />
-        <span className="text-navy-400">Loading...</span>
-      </div>
-    );
-  }
+  // Note: Individual loading states are now handled at the page level
+  // through ContentProvider's centralized loading state and skeleton loaders
+  // This eliminates flickering by coordinating all content loading
 
   if (!isAdmin) {
+    // Show fallback content for failed items when not admin
+    if (hasFailed && !displayContent) {
+      return (
+        <InlineFallbackContent
+          contentName={name}
+          fallbackText={defaultContent || placeholder}
+          showError={false}
+        />
+      );
+    }
+    
     return (
       <span className={className}>
         {displayContent || placeholder}
@@ -141,9 +148,37 @@ const EditableContent: React.FC<EditableContentProps> = ({
 
   return (
     <div className="relative group">
-      <span className={className}>
-        {displayContent || placeholder}
-      </span>
+      {hasFailed && !displayContent ? (
+        <div className="flex items-center gap-2">
+          <InlineFallbackContent
+            contentName={name}
+            error={error}
+            fallbackText={defaultContent || placeholder}
+            showError={true}
+          />
+          <motion.button
+            onClick={retryContent}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="bg-yellow-500 text-white p-1 rounded-full hover:bg-yellow-600 transition-colors shadow-lg"
+            title={`Retry loading "${name}"`}
+          >
+            <RefreshCw className="w-3 h-3" />
+          </motion.button>
+        </div>
+      ) : (
+        <>
+          <span className={className}>
+            {displayContent || placeholder}
+          </span>
+          {error && (
+            <div className="absolute top-full left-0 mt-1 flex items-center gap-1 text-xs text-red-500 bg-white px-2 py-1 rounded shadow-lg border border-red-200 z-10">
+              <AlertCircle className="w-3 h-3" />
+              {error}
+            </div>
+          )}
+        </>
+      )}
       <motion.button
         onClick={handleStartEdit}
         whileHover={{ scale: 1.1 }}

@@ -1,20 +1,27 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
-import { useContentSections } from '../../hooks/useContent';
+import { useStableContent } from '../../hooks/useStableContent';
+import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
 import EditableImage from '../Admin/EditableImage';
+import ContentSkeleton from '../Loading/ContentSkeleton';
+import { OptimizedImage } from '../Common';
 
-const Hero: React.FC = () => {
-  const { content, saveContent } = useContentSections([
-    'hero_title',
-    'hero_subtitle', 
-    'hero_badge',
-    'hero_cta_text',
-    'hero_floating_badge',
-    'hero_scroll_text',
-    'profile_photo'
-  ]);
+// All content names used in the Hero section
+const HERO_CONTENT_NAMES = [
+  'hero_title',
+  'hero_subtitle', 
+  'hero_badge',
+  'hero_cta_text',
+  'hero_floating_badge',
+  'hero_scroll_text',
+  'profile_photo'
+];
+
+const HeroContent: React.FC = () => {
+  const { content, saveContent } = useStableContent(HERO_CONTENT_NAMES);
+  const { isSectionLoading } = useSectionLoader('hero', HERO_CONTENT_NAMES);
 
   const scrollToAbout = () => {
     const element = document.querySelector('#about');
@@ -22,6 +29,8 @@ const Hero: React.FC = () => {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // No skeleton loading needed - using stable content and optimized image loading
 
   return (
     <section className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-navy-50 via-platinum-50 to-gold-50">
@@ -124,12 +133,25 @@ const Hero: React.FC = () => {
             <div className="relative">
               {/* Main Photo Circle */}
               <div className="w-80 h-80 md:w-96 md:h-96 rounded-full overflow-hidden shadow-2xl border-8 border-white/50 backdrop-blur-sm">
-                <EditableImage
-                  src={content.profile_photo || 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=800'}
+                <OptimizedImage
+                  src={content.profile_photo}
                   alt="Profile Photo"
-                  onSave={(imageUrl) => saveContent('profile_photo', imageUrl)}
                   className="w-full h-full object-cover"
+                  placeholder={
+                    <div className="w-full h-full bg-gradient-to-br from-navy-200 to-navy-300 animate-pulse flex items-center justify-center">
+                      <div className="w-24 h-24 bg-navy-400 rounded-full opacity-50" />
+                    </div>
+                  }
                 />
+                {/* Overlay EditableImage for admin functionality */}
+                <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity">
+                  <EditableImage
+                    src={content.profile_photo}
+                    alt="Profile Photo"
+                    onSave={(imageUrl) => saveContent('profile_photo', imageUrl)}
+                    className="w-full h-full object-cover opacity-0"
+                  />
+                </div>
               </div>
               
               {/* Floating Badge */}
@@ -175,6 +197,11 @@ const Hero: React.FC = () => {
       </div>
     </section>
   );
+};
+
+// Main Hero component - no longer needs ContentProvider wrapper since it's handled at page level
+const Hero: React.FC = () => {
+  return <HeroContent />;
 };
 
 export default Hero;

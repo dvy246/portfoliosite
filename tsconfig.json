@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]         // ← allow import.meta.env
+    "types": ["vite/client", "react", "react-dom"]         // ← allow import.meta.env and React types
   },
   "include": [
     "src",

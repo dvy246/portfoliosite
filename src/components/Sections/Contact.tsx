@@ -3,7 +3,9 @@ import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, Linkedin, Github, Twitter } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useContentSections } from '../../hooks/useContent';
+import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
+import ContentSkeleton from '../Loading/ContentSkeleton';
 import toast from 'react-hot-toast';
 
 interface ContactForm {
@@ -13,29 +15,33 @@ interface ContactForm {
   message: string;
 }
 
-const Contact: React.FC = () => {
+// All content names used in the Contact section
+const CONTACT_CONTENT_NAMES = [
+  'contact_title',
+  'contact_subtitle',
+  'contact_content',
+  'contact_section_title',
+  'contact_email',
+  'contact_phone',
+  'contact_location',
+  'contact_social_title',
+  'contact_linkedin_url',
+  'contact_github_url',
+  'contact_twitter_url',
+  'contact_form_title',
+  'contact_name_label',
+  'contact_email_label',
+  'contact_company_label',
+  'contact_message_label',
+  'contact_button_text',
+  'contact_footer_text'
+];
+
+const ContactContent: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactForm>();
-  const { content, saveContent } = useContentSections([
-    'contact_title',
-    'contact_subtitle',
-    'contact_content',
-    'contact_section_title',
-    'contact_email',
-    'contact_phone',
-    'contact_location',
-    'contact_social_title',
-    'contact_linkedin_url',
-    'contact_github_url',
-    'contact_twitter_url',
-    'contact_form_title',
-    'contact_name_label',
-    'contact_email_label',
-    'contact_company_label',
-    'contact_message_label',
-    'contact_button_text',
-    'contact_footer_text'
-  ]);
+  const { content, saveContent } = useContentSections(CONTACT_CONTENT_NAMES);
+  const { isSectionLoading } = useSectionLoader('contact', CONTACT_CONTENT_NAMES);
 
   const onSubmit = async (data: ContactForm) => {
     setIsSubmitting(true);
@@ -50,6 +56,79 @@ const Contact: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show skeleton loaders during loading
+  if (isSectionLoading) {
+    return (
+      <section id="contact" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <ContentSkeleton type="title" className="mx-auto mb-6" width="large" />
+            <ContentSkeleton type="paragraph" lines={2} className="max-w-3xl mx-auto" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Contact Information Skeleton */}
+            <div className="space-y-8">
+              <div>
+                <ContentSkeleton type="title" width="medium" className="mb-6" />
+                <ContentSkeleton type="paragraph" lines={3} className="mb-8" />
+              </div>
+
+              {/* Contact Details Skeleton */}
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md">
+                    <ContentSkeleton type="button" className="w-12 h-12 rounded-xl" />
+                    <div className="flex-1">
+                      <ContentSkeleton type="text" width="small" className="mb-1" />
+                      <ContentSkeleton type="text" width="medium" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Social Links Skeleton */}
+              <div>
+                <ContentSkeleton type="text" width="medium" className="mb-4" />
+                <div className="flex space-x-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <ContentSkeleton key={index} type="button" className="w-12 h-12 rounded-xl" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Form Skeleton */}
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <ContentSkeleton type="title" width="medium" className="mb-6" />
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <ContentSkeleton type="text" width="small" className="mb-2" />
+                    <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
+                  </div>
+                  <div>
+                    <ContentSkeleton type="text" width="small" className="mb-2" />
+                    <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
+                  </div>
+                </div>
+                <div>
+                  <ContentSkeleton type="text" width="small" className="mb-2" />
+                  <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
+                </div>
+                <div>
+                  <ContentSkeleton type="text" width="small" className="mb-2" />
+                  <ContentSkeleton type="button" className="w-full h-32 rounded-xl" />
+                </div>
+                <ContentSkeleton type="button" className="w-full h-14 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="contact" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
@@ -352,6 +431,11 @@ const Contact: React.FC = () => {
       </div>
     </section>
   );
+};
+
+// Main Contact component - no longer needs ContentProvider wrapper
+const Contact: React.FC = () => {
+  return <ContactContent />;
 };
 
 export default Contact;

@@ -1,233 +1,142 @@
-import { useState, useEffect } from 'react';
-import { supabase, directSaveTest } from '../lib/supabase';
-import toast from 'react-hot-toast';
+import { useEffect, useCallback, useState } from 'react';
+import { useContentContext } from '../contexts/ContentContext';
 
-interface ContentData {
-  [key: string]: string;
+interface UseContentOptions {
+  preload?: boolean;
+  fallback?: string;
 }
 
-export const useContent = (name: string) => {
-  const [content, setContent] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+export const useContent = (name: string, options: UseContentOptions = {}) => {
+  const { preload = true, fallback = '' } = options;
   const [error, setError] = useState<string | null>(null);
-
+  
+  // Use ContentContext - this hook now requires ContentProvider to be available
+  const { 
+    getContent, 
+    saveContent: contextSaveContent, 
+    preloadContent, 
+    isLoading, 
+    failedItems,
+    retryFailedContent,
+    error: contextError,
+    // Enhanced cache management
+    refreshContent,
+    isContentStale
+  } = useContentContext();
+  
+  // Preload this content if requested
   useEffect(() => {
-    fetchContent();
-  }, [name]);
-
-  const fetchContent = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      console.log(`🔄 FETCHING content for: "${name}"`);
-
-      const { data, error: fetchError } = await supabase
-        .from('sections')
-        .select('content')
-        .eq('name', name)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error(`❌ FETCH ERROR for "${name}":`, fetchError);
-        setContent('');
-      } else {
-        const contentValue = data?.content || '';
-        console.log(`✅ FETCHED content for "${name}":`, contentValue);
-        setContent(contentValue);
-      }
-    } catch (err: any) {
-      console.error(`❌ FETCH EXCEPTION for "${name}":`, err);
-      setError(err.message);
-      setContent('');
-    } finally {
-      setIsLoading(false);
+    if (preload) {
+      preloadContent([name]);
     }
-  };
+  }, [name, preload, preloadContent]);
 
-  const saveContent = async (newContent: string) => {
+  // Get content from cache - returns immediately if available
+  const content = getContent(name, fallback);
+  
+  // Check if this specific content item failed to load
+  const hasFailed = failedItems.has(name);
+  
+  const saveContent = useCallback(async (newContent: string) => {
     try {
       setError(null);
-      console.log(`🚨 CRITICAL SAVE ATTEMPT for "${name}":`, newContent);
-      
-      // Method 1: Try direct save test first
-      console.log('🔥 Method 1: Using direct save test...');
-      try {
-        await directSaveTest(name, newContent);
-        console.log('✅ Direct save test PASSED');
-      } catch (directError) {
-        console.error('❌ Direct save test FAILED:', directError);
-        throw directError;
-      }
-      
-      // Method 2: Standard upsert
-      console.log('🔥 Method 2: Using standard upsert...');
-      const { data, error: upsertError } = await supabase
-        .from('sections')
-        .upsert(
-          { name, content: newContent },
-          { onConflict: 'name' }
-        )
-        .select();
-
-      if (upsertError) {
-        console.error(`❌ UPSERT FAILED for "${name}":`, upsertError);
-        console.error('❌ Error details:', {
-          message: upsertError.message,
-          details: upsertError.details,
-          hint: upsertError.hint,
-          code: upsertError.code
-        });
-        throw upsertError;
-      }
-
-      console.log(`✅ UPSERT SUCCESS for "${name}":`, data);
-      
-      // Update local state
-      setContent(newContent);
-      
-      // Method 3: Verify the save worked
-      console.log('🔍 Method 3: Verifying save...');
-      setTimeout(async () => {
-        try {
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('sections')
-            .select('content')
-            .eq('name', name)
-            .single();
-          
-          if (verifyError) {
-            console.error(`❌ VERIFICATION FAILED for "${name}":`, verifyError);
-          } else if (verifyData.content === newContent) {
-            console.log(`🎉 VERIFICATION SUCCESS for "${name}": Data persisted correctly!`);
-            toast.success(`✅ Saved and verified: ${name}`);
-          } else {
-            console.error(`❌ VERIFICATION MISMATCH for "${name}"`);
-            console.error('Expected:', newContent);
-            console.error('Got:', verifyData.content);
-            toast.error(`❌ Save verification failed for: ${name}`);
-          }
-        } catch (verifyErr) {
-          console.error(`❌ VERIFICATION ERROR for "${name}":`, verifyErr);
-        }
-      }, 1000);
-      
+      await contextSaveContent(name, newContent);
     } catch (err: any) {
-      console.error(`❌ SAVE FAILED for "${name}":`, err);
       setError(err.message);
-      toast.error(`❌ Failed to save "${name}": ${err.message}`);
-      
-      // Don't revert - keep the new content in UI to show what user tried to save
-      setContent(newContent);
+      throw err;
     }
-  };
+  }, [name, contextSaveContent]);
+
+  const retryContent = useCallback(async () => {
+    try {
+      setError(null);
+      await retryFailedContent([name]);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [name, retryFailedContent]);
+
+  // Enhanced cache management methods
+  const refreshContentItem = useCallback(async () => {
+    try {
+      setError(null);
+      await refreshContent([name]);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [name, refreshContent]);
+
+  const isStale = isContentStale(name);
 
   return {
     content,
     saveContent,
+    retryContent,
+    refreshContent: refreshContentItem,
     isLoading,
-    error
+    error: error || (hasFailed ? contextError : null),
+    hasFailed,
+    isStale
   };
 };
 
-// Hook for managing multiple content sections
+// Hook for managing multiple content sections - uses ContentProvider
 export const useContentSections = (sectionNames: string[]) => {
-  const [content, setContent] = useState<ContentData>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const { 
+    getContent, 
+    saveContent: contextSaveContent, 
+    preloadContent, 
+    isLoading,
+    refreshContent,
+    invalidateContent,
+    isContentStale
+  } = useContentContext();
   const [error, setError] = useState<string | null>(null);
 
+  // Preload all requested content
   useEffect(() => {
-    fetchAllContent();
-  }, [sectionNames]);
+    preloadContent(sectionNames);
+  }, [sectionNames, preloadContent]);
 
-  const fetchAllContent = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // Build content object from individual content items
+  const content: Record<string, string> = {};
+  sectionNames.forEach(name => {
+    content[name] = getContent(name, '');
+  });
 
-      console.log('🔄 BULK FETCH for sections:', sectionNames);
-
-      const { data, error: fetchError } = await supabase
-        .from('sections')
-        .select('name, content')
-        .in('name', sectionNames);
-
-      if (fetchError) {
-        console.error('❌ BULK FETCH ERROR:', fetchError);
-        const fallbackContent: ContentData = {};
-        sectionNames.forEach(name => {
-          fallbackContent[name] = '';
-        });
-        setContent(fallbackContent);
-      } else {
-        const contentMap: ContentData = {};
-        sectionNames.forEach(name => {
-          const found = data?.find(item => item.name === name);
-          contentMap[name] = found?.content || '';
-        });
-        console.log('✅ BULK FETCH SUCCESS:', contentMap);
-        setContent(contentMap);
-      }
-    } catch (err: any) {
-      console.error('❌ BULK FETCH EXCEPTION:', err);
-      setError(err.message);
-      
-      const fallbackContent: ContentData = {};
-      sectionNames.forEach(name => {
-        fallbackContent[name] = '';
-      });
-      setContent(fallbackContent);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveContent = async (name: string, newContent: string) => {
+  const saveContent = useCallback(async (name: string, newContent: string) => {
     try {
       setError(null);
-      console.log(`🚨 BULK SAVE for "${name}":`, newContent);
-      
-      // Use the same critical save logic
-      const { data, error: upsertError } = await supabase
-        .from('sections')
-        .upsert(
-          { name, content: newContent },
-          { onConflict: 'name' }
-        )
-        .select();
-
-      if (upsertError) {
-        console.error(`❌ BULK SAVE FAILED for "${name}":`, upsertError);
-        throw upsertError;
-      }
-
-      console.log(`✅ BULK SAVE SUCCESS for "${name}":`, data);
-      
-      // Update local state
-      setContent(prev => ({
-        ...prev,
-        [name]: newContent
-      }));
-      
-      toast.success(`✅ Saved: ${name}`);
-      
+      await contextSaveContent(name, newContent);
     } catch (err: any) {
-      console.error(`❌ BULK SAVE ERROR for "${name}":`, err);
       setError(err.message);
-      toast.error(`❌ Failed to save "${name}": ${err.message}`);
-      
-      // Update local state anyway to show what user tried to save
-      setContent(prev => ({
-        ...prev,
-        [name]: newContent
-      }));
+      throw err;
     }
-  };
+  }, [contextSaveContent]);
+
+  // Enhanced cache management for sections
+  const refreshSection = useCallback(async () => {
+    try {
+      setError(null);
+      await refreshContent(sectionNames);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [sectionNames, refreshContent]);
+
+  const invalidateSection = useCallback(() => {
+    invalidateContent(sectionNames);
+  }, [sectionNames, invalidateContent]);
+
+  const hasStaleContent = sectionNames.some(name => isContentStale(name));
 
   return {
     content,
     saveContent,
+    refreshSection,
+    invalidateSection,
     isLoading,
-    error
+    error,
+    hasStaleContent
   };
 };

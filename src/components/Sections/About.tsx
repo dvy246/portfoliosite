@@ -1,16 +1,36 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Brain, Target, Award } from 'lucide-react';
-import { useContentSections } from '../../hooks/useContent';
+import { useStableContent } from '../../hooks/useStableContent';
+import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
+import ContentSkeleton from '../Loading/ContentSkeleton';
+import { ContentErrorBoundary, FallbackContent } from '../ErrorBoundary';
 
-const About: React.FC = () => {
-  const { content } = useContentSections([
+// All content names used in the About section
+const ABOUT_CONTENT_NAMES = [
+  'about_title',
+  'about_subtitle',
+  'about_content',
+  'about_journey_title',
+  'about_highlight_1_title',
+  'about_highlight_1_desc',
+  'about_highlight_2_title',
+  'about_highlight_2_desc',
+  'about_highlight_3_title',
+  'about_highlight_3_desc',
+  'about_highlight_4_title',
+  'about_highlight_4_desc'
+];
+
+const AboutContent: React.FC = () => {
+  const { content } = useStableContent([
     'about_title',
     'about_subtitle',
     'about_content',
     'about_journey_title'
   ]);
+  const { isSectionLoading } = useSectionLoader('about', ABOUT_CONTENT_NAMES);
 
   const highlights = [
     {
@@ -34,6 +54,8 @@ const About: React.FC = () => {
       description: 'Track record of delivering AI projects that drive tangible business value and growth'
     }
   ];
+
+  // No skeleton loading needed - using stable content
 
   return (
     <section id="about" className="py-20 bg-white">
@@ -125,6 +147,28 @@ const About: React.FC = () => {
         </div>
       </div>
     </section>
+  );
+};
+
+// Main About component with ErrorBoundary - no longer needs ContentProvider wrapper
+const About: React.FC = () => {
+  return (
+    <ContentErrorBoundary
+      fallback={
+        <section id="about" className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FallbackContent
+              contentName="About Section"
+              fallbackText="This section is temporarily unavailable. Please refresh the page or try again later."
+              showError={true}
+            />
+          </div>
+        </section>
+      }
+      onRetry={() => window.location.reload()}
+    >
+      <AboutContent />
+    </ContentErrorBoundary>
   );
 };
 

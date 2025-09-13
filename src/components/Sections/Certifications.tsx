@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Award, ExternalLink, Calendar, BookOpen, Edit3, Save, X, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useSectionLoader } from '../../contexts/PageContentContext';
+import ContentSkeleton from '../Loading/ContentSkeleton';
 import toast from 'react-hot-toast';
 
 interface Certificate {
@@ -21,6 +23,7 @@ const Certifications: React.FC = () => {
   const [editingCert, setEditingCert] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Certificate>>({});
   const { isAdmin } = useAuth();
+  const { isSectionLoading } = useSectionLoader('certifications', ['certifications_title']);
 
   useEffect(() => {
     fetchCertificates();
@@ -180,6 +183,47 @@ const Certifications: React.FC = () => {
         return 'from-navy-500 to-navy-600';
     }
   };
+
+  // Show skeleton loaders during loading
+  if (isSectionLoading) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <ContentSkeleton type="title" className="mx-auto mb-6" width="large" />
+            <ContentSkeleton type="paragraph" lines={1} className="max-w-3xl mx-auto" />
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="bg-gradient-to-br from-white to-navy-50 rounded-2xl shadow-lg p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <ContentSkeleton type="button" className="w-12 h-12 rounded-xl" />
+                  <ContentSkeleton type="text" width="small" />
+                </div>
+                <ContentSkeleton type="title" width="large" className="mb-2" />
+                <ContentSkeleton type="text" width="medium" className="mb-3" />
+                <ContentSkeleton type="paragraph" lines={2} className="mb-3" />
+                <div className="flex items-center justify-between">
+                  <ContentSkeleton type="button" className="h-6 w-20 rounded-full" />
+                  <ContentSkeleton type="button" className="w-4 h-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Learning Philosophy Skeleton */}
+          <div className="mt-16 bg-gradient-to-r from-navy-900 to-navy-800 rounded-2xl p-8 text-center">
+            <div className="flex items-center justify-center mb-4">
+              <ContentSkeleton type="button" className="w-8 h-8 mr-3 rounded" />
+              <ContentSkeleton type="title" width="medium" />
+            </div>
+            <ContentSkeleton type="paragraph" lines={4} className="max-w-3xl mx-auto" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 bg-white">

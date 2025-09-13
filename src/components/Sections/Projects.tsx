@@ -4,7 +4,9 @@ import { ExternalLink, Github, TrendingUp, Award, Zap, BookOpen, Edit3, Save, X,
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useContentSections } from '../../hooks/useContent';
+import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
+import ContentSkeleton from '../Loading/ContentSkeleton';
 import toast from 'react-hot-toast';
 
 interface Project {
@@ -19,15 +21,19 @@ interface Project {
   order_index: number;
 }
 
-const Projects: React.FC = () => {
+// All content names used in the Projects section
+const PROJECTS_CONTENT_NAMES = [
+  'cta_section_title',
+  'cta_section_content'
+];
+
+const ProjectsContent: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Project>>({});
   const { isAdmin } = useAuth();
-  const { content } = useContentSections([
-    'cta_section_title',
-    'cta_section_content'
-  ]);
+  const { content } = useContentSections(PROJECTS_CONTENT_NAMES);
+  const { isSectionLoading } = useSectionLoader('projects', PROJECTS_CONTENT_NAMES);
 
   useEffect(() => {
     fetchProjects();
@@ -184,6 +190,45 @@ const Projects: React.FC = () => {
         return <Zap className="w-4 h-4 text-purple-600" />;
     }
   };
+
+  // Show skeleton loaders during loading
+  if (isSectionLoading) {
+    return (
+      <section id="projects" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <ContentSkeleton type="title" className="mx-auto mb-6" width="large" />
+            <ContentSkeleton type="paragraph" lines={1} className="max-w-3xl mx-auto" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div key={index} className="bg-gradient-to-br from-white to-navy-50 rounded-2xl shadow-lg p-6">
+                <ContentSkeleton type="button" className="w-full h-48 mb-6 rounded-xl" />
+                <ContentSkeleton type="title" width="large" className="mb-3" />
+                <ContentSkeleton type="paragraph" lines={3} className="mb-4" />
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {Array.from({ length: 4 }).map((_, techIndex) => (
+                    <ContentSkeleton key={techIndex} type="button" className="h-6 w-16 rounded-full" />
+                  ))}
+                </div>
+                <ContentSkeleton type="paragraph" lines={2} />
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Section Skeleton */}
+          <div className="text-center mt-16">
+            <div className="bg-gradient-to-r from-navy-900 to-navy-800 rounded-2xl p-8">
+              <ContentSkeleton type="title" width="medium" className="mx-auto mb-4" />
+              <ContentSkeleton type="paragraph" lines={2} className="max-w-2xl mx-auto mb-6" />
+              <ContentSkeleton type="button" className="h-12 w-48 mx-auto rounded-full" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="projects" className="py-20 bg-white">
@@ -433,6 +478,11 @@ const Projects: React.FC = () => {
       </div>
     </section>
   );
+};
+
+// Main Projects component - no longer needs ContentProvider wrapper
+const Projects: React.FC = () => {
+  return <ProjectsContent />;
 };
 
 export default Projects;
