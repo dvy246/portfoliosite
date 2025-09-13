@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
-import { PageContentProvider } from './contexts/PageContentContext';
+import { AuthProvider } from '../contexts/AuthContext';
+import { PageContentProvider } from '../contexts/PageContentContext';
 
 // Mock the components that use import.meta.env
 jest.mock('./components/Sections/Hero', () => () => <div data-testid="mock-hero">Hero Section</div>);

@@ -26,7 +26,7 @@ const EditableContent: React.FC<EditableContentProps> = ({
   const { content, saveContent, retryContent, error, hasFailed } = useContent(name, { preload: false });
 
   // Use content from database, fallback to defaultContent, then empty string
-  const displayContent = content || defaultContent || '';
+  const displayContent = content ?? defaultContent ?? '';
 
   const handleStartEdit = () => {
     console.log(`🖊️ STARTING EDIT for "${name}"`);
@@ -152,7 +152,7 @@ const EditableContent: React.FC<EditableContentProps> = ({
         <div className="flex items-center gap-2">
           <InlineFallbackContent
             contentName={name}
-            error={error}
+            error={error || undefined}
             fallbackText={defaultContent || placeholder}
             showError={true}
           />
