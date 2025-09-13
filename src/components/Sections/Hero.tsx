@@ -33,11 +33,11 @@ const HeroContent: React.FC = () => {
   // No skeleton loading needed - using stable content and optimized image loading
 
   return (
-    <section className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-navy-50 via-platinum-50 to-gold-50">
+    <section className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-gold-200/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-navy-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-700/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -132,14 +132,14 @@ const HeroContent: React.FC = () => {
           >
             <div className="relative">
               {/* Main Photo Circle */}
-              <div className="w-80 h-80 md:w-96 md:h-96 rounded-full overflow-hidden shadow-2xl border-8 border-white/50 backdrop-blur-sm">
+              <div className="w-80 h-80 md:w-96 md:h-96 rounded-full overflow-hidden shadow-2xl border-4 border-blue-500/30 backdrop-blur-sm transform-gpu">
                 <OptimizedImage
                   src={content.profile_photo}
                   alt="Profile Photo"
                   className="w-full h-full object-cover"
                   placeholder={
-                    <div className="w-full h-full bg-gradient-to-br from-navy-200 to-navy-300 animate-pulse flex items-center justify-center">
-                      <div className="w-24 h-24 bg-navy-400 rounded-full opacity-50" />
+                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black animate-pulse flex items-center justify-center">
+                      <div className="w-24 h-24 bg-blue-500 rounded-full opacity-30" />
                     </div>
                   }
                 />

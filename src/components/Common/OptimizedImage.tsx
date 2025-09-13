@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface OptimizedImageProps {
@@ -13,36 +13,43 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
   className = '',
-  fallbackSrc = 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=800',
+  fallbackSrc = 'https://placehold.co/200x200?text=Image+Error',
   placeholder
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
+  const [imageSrc, setImageSrc] = useState(src);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (src && src !== imageSrc) {
-      setIsLoaded(false);
-      setHasError(false);
+    // Preload the image
+    const img = new Image();
+    img.src = src;
+    
+    img.onload = () => {
       setImageSrc(src);
-    }
-  }, [src, imageSrc]);
+      if (imageRef.current?.complete) {
+        setIsLoaded(true);
+      }
+    };
+
+    img.onerror = () => {
+      setImageSrc(fallbackSrc);
+    };
+
+    // Clean up
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [src, fallbackSrc]);
 
   const handleLoad = () => {
     setIsLoaded(true);
-    setHasError(false);
-  };
-
-  const handleError = () => {
-    setHasError(true);
-    if (imageSrc !== fallbackSrc) {
-      setImageSrc(fallbackSrc);
-    }
   };
 
   const defaultPlaceholder = (
-    <div className={`bg-gradient-to-br from-navy-200 to-navy-300 animate-pulse flex items-center justify-center ${className}`}>
-      <div className="w-16 h-16 bg-navy-400 rounded-full opacity-50" />
+    <div className={`bg-gradient-to-br from-gray-800 to-black animate-pulse flex items-center justify-center ${className}`}>
+      <div className="w-16 h-16 bg-blue-500 rounded-full opacity-50" />
     </div>
   );
 
@@ -57,18 +64,19 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
       
       {/* Actual Image */}
       <motion.img
+        ref={imageRef}
         src={imageSrc}
         alt={alt}
-        className={className}
+        className={`${className} will-change-transform`}
         onLoad={handleLoad}
-        onError={handleError}
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoaded ? 1 : 0 }}
         transition={{ duration: 0.3 }}
+        loading="eager"
+        draggable={false}
         style={{ 
-          display: 'block',
-          width: '100%',
-          height: '100%'
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden'
         }}
       />
     </div>
