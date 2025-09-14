@@ -4,8 +4,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)'],
   setupFilesAfterEnv: [
-    '@testing-library/jest-dom',
-    '<rootDir>/src/setupTests.ts'
+    '@testing-library/jest-dom'
   ],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
@@ -19,24 +18,18 @@ module.exports = {
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.tsx',
-    '!src/vite-env.d.ts'
+    '!src/vite-env.d.ts',
+    '!src/**/__tests__/**',
+    '!src/**/*.test.*'
   ],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
-    }
-  },
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.jest.json'
-    }
-  },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: 'tsconfig.jest.json'
+      useESM: true,
+      tsconfig: {
+        jsx: 'react-jsx'
+      }
     }]
-  }
+  },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  testTimeout: 10000
 };

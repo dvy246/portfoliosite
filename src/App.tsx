@@ -1,11 +1,9 @@
-import React, { useEffect, Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
-import { PageContentProvider, usePageContent } from './contexts/PageContentContext';
-import { testSupabaseConnection } from './lib/supabase';
-import GlobalErrorBoundary from './components/ErrorBoundary/GlobalErrorBoundary';
-import PageLoader from './components/Loading/PageLoader';
+import { ContentProvider } from './contexts/ContentContext';
+import { ComprehensiveTestPage } from './components/Test/ComprehensiveTestPage';
 import Header from './components/Layout/Header';
 import Hero from './components/Sections/Hero';
 import About from './components/Sections/About';
@@ -15,66 +13,94 @@ import Certifications from './components/Sections/Certifications';
 import Contact from './components/Sections/Contact';
 import Footer from './components/Layout/Footer';
 
-const MainContent: React.FC = () => {
-  const { isPageLoading, loadingProgress } = usePageContent();
+// All content names used across the entire page
+const ALL_PAGE_CONTENT_NAMES = [
+  // Hero section
+  'hero_title', 'hero_subtitle', 'hero_badge', 'hero_cta_text', 'hero_floating_badge', 'hero_scroll_text', 'profile_photo',
+  
+  // About section
+  'about_title', 'about_subtitle', 'about_content', 'about_journey_title',
+  
+  // Skills section
+  'skills_title', 'skills_subtitle', 'skills_differentiator_title', 'skills_differentiator_subtitle',
+  
+  // Projects section
+  'cta_section_title', 'cta_section_content',
+  
+  // Contact section
+  'contact_title', 'contact_subtitle', 'contact_content', 'contact_section_title',
+  'contact_email', 'contact_phone', 'contact_location', 'contact_social_title',
+  'contact_linkedin_url', 'contact_github_url', 'contact_twitter_url',
+  'contact_form_title', 'contact_name_label', 'contact_email_label',
+  'contact_company_label', 'contact_message_label', 'contact_button_text', 'contact_footer_text',
+  
+  // Certifications section
+  'certifications_title'
+];
+
+const AppContent: React.FC = () => {
+  // Check if we should show the test page
+  const urlParams = new URLSearchParams(window.location.search);
+  const showTestPage = urlParams.get('test') === 'true';
+
+  // Show test page if requested
+  if (showTestPage) {
+    return (
+      <>
+        <ComprehensiveTestPage />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1e293b',
+              color: '#fff',
+              borderRadius: '12px',
+            },
+          }}
+        />
+      </>
+    );
+  }
+
+  // Main portfolio - renders immediately, no loading states
   return (
-    <>
-      {/* Display the PageLoader overlay during loading */}
-      <PageLoader isLoading={isPageLoading} progress={loadingProgress} />
-      {/* Main content fades in when loading is complete */}
-      <div className={`min-h-screen bg-white ${isPageLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
-        <Header />
-        <main>
-          <Hero />
-          <About />
-          <Skills />
-          <Projects />
-          <Certifications />
-          <Contact />
-        </main>
-        <Footer />
-      </div>
-    </>
+    <div className="min-h-screen bg-dark-950">
+      <Header />
+      <main>
+        <Hero />
+        <About />
+        <Skills />
+        <Projects />
+        <Certifications />
+        <Contact />
+      </main>
+      <Footer />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '12px',
+          },
+        }}
+      />
+    </div>
   );
 };
 
-const App: React.FC = () => {
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        const connected = await testSupabaseConnection();
-        if (!connected) {
-          console.error('💥 CRITICAL: Supabase connection failed!');
-          return;
-        }
-        console.log('✅ Supabase connection initialized');
-      } catch (err) {
-        console.error('❌ Supabase initialization error:', err);
-      }
-    };
-    initializeApp();
-  }, []);
-
+function App() {
   return (
     <Router>
-      <GlobalErrorBoundary>
-        <AuthProvider>
-          <PageContentProvider>
-            <Suspense fallback={<PageLoader isLoading={true} progress={0} />}>
-              <MainContent />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: { background: '#1e293b', color: '#fff', borderRadius: '12px' },
-                }}
-              />
-            </Suspense>
-          </PageContentProvider>
-        </AuthProvider>
-      </GlobalErrorBoundary>
+      <AuthProvider>
+        <ContentProvider preloadNames={ALL_PAGE_CONTENT_NAMES}>
+          <AppContent />
+        </ContentProvider>
+      </AuthProvider>
     </Router>
   );
-};
+}
 
 export default App;

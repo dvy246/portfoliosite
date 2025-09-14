@@ -1,69 +1,90 @@
-import React, { useEffect, useState } from 'react';
-import { PageContentProvider, usePageContent } from '../../contexts/PageContentContext';
-import PageLoader from './PageLoader';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-// Test component to verify loading coordination
-const LoadingTestContent: React.FC = () => {
-  const { isPageLoading, loadingProgress, allSectionsLoaded } = usePageContent();
-  const [testSections, setTestSections] = useState<string[]>([]);
+const LoadingTest: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('');
 
-  useEffect(() => {
-    // Simulate sections loading over time
-    const timers = [
-      setTimeout(() => setTestSections(prev => [...prev, 'hero']), 1000),
-      setTimeout(() => setTestSections(prev => [...prev, 'about']), 2000),
-      setTimeout(() => setTestSections(prev => [...prev, 'skills']), 3000),
-      setTimeout(() => setTestSections(prev => [...prev, 'projects']), 4000),
-      setTimeout(() => setTestSections(prev => [...prev, 'contact']), 5000),
+  const simulateLoading = async () => {
+    setIsLoading(true);
+    
+    const stages = [
+      'Initializing...',
+      'Loading content...',
+      'Processing data...',
+      'Finalizing...'
     ];
 
-    return () => timers.forEach(clearTimeout);
-  }, []);
+    for (const stage of stages) {
+      setLoadingStage(stage);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    setIsLoading(false);
+    setLoadingStage('Complete!');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <PageLoader isLoading={isPageLoading} progress={loadingProgress} />
-      
-      <div className={`transition-opacity duration-500 ${isPageLoading ? 'opacity-0' : 'opacity-100'}`}>
-        <h1 className="text-3xl font-bold mb-8">Loading Coordination Test</h1>
-        
-        <div className="bg-white rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-semibold mb-4">Loading Status</h2>
-          <div className="space-y-2">
-            <p><strong>Page Loading:</strong> {isPageLoading ? 'Yes' : 'No'}</p>
-            <p><strong>Progress:</strong> {Math.round(loadingProgress)}%</p>
-            <p><strong>All Sections Loaded:</strong> {allSectionsLoaded ? 'Yes' : 'No'}</p>
-            <p><strong>Test Sections:</strong> {testSections.join(', ')}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg shadow-lg p-6"
+    >
+      <div className="flex items-center space-x-2 mb-6">
+        <Loader2 className="w-5 h-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-gray-900">Loading Test</h3>
+      </div>
+
+      <div className="space-y-4">
+        {/* Loading Status */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-3">
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+            ) : loadingStage === 'Complete!' ? (
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            ) : (
+              <XCircle className="w-5 h-5 text-gray-400" />
+            )}
+            <div>
+              <p className="font-medium text-gray-900">Loading Status</p>
+              <p className="text-sm text-gray-600">
+                {loadingStage || 'Ready to test'}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {['hero', 'about', 'skills', 'projects', 'contact'].map(section => (
-            <div 
-              key={section}
-              className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                testSections.includes(section) 
-                  ? 'bg-green-100 border-green-500' 
-                  : 'bg-gray-100 border-gray-300'
-              }`}
-            >
-              <h3 className="font-semibold capitalize">{section} Section</h3>
-              <p className="text-sm text-gray-600">
-                {testSections.includes(section) ? 'Loaded' : 'Loading...'}
-              </p>
-            </div>
-          ))}
+        {/* Test Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={simulateLoading}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            <span>{isLoading ? 'Loading...' : 'Start Loading Test'}</span>
+          </button>
         </div>
-      </div>
-    </div>
-  );
-};
 
-const LoadingTest: React.FC = () => {
-  return (
-    <PageContentProvider>
-      <LoadingTestContent />
-    </PageContentProvider>
+        {/* Progress Bar */}
+        {isLoading && (
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <motion.div
+              className="bg-blue-600 h-2 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 4, ease: 'linear' }}
+            />
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

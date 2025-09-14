@@ -2,13 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useStableContent } from '../../hooks/useStableContent';
-import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
 import EditableImage from '../Admin/EditableImage';
-import ContentSkeleton from '../Loading/ContentSkeleton';
-import { OptimizedImage } from '../Common';
 
-// All content names used in the Hero section
 const HERO_CONTENT_NAMES = [
   'hero_title',
   'hero_subtitle', 
@@ -19,9 +15,8 @@ const HERO_CONTENT_NAMES = [
   'profile_photo'
 ];
 
-const HeroContent: React.FC = () => {
-  const { content, saveContent } = useStableContent(HERO_CONTENT_NAMES);
-  const { isSectionLoading } = useSectionLoader('hero', HERO_CONTENT_NAMES);
+const Hero: React.FC = () => {
+  const { content } = useStableContent(HERO_CONTENT_NAMES);
 
   const scrollToAbout = () => {
     const element = document.querySelector('#about');
@@ -30,14 +25,13 @@ const HeroContent: React.FC = () => {
     }
   };
 
-  // No skeleton loading needed - using stable content and optimized image loading
-
   return (
-    <section className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <section className="min-h-screen flex items-center justify-center relative overflow-hidden bg-dark-950">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-700/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-500/5 rounded-full blur-3xl"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -54,12 +48,12 @@ const HeroContent: React.FC = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-gold-200 shadow-lg"
+              className="inline-flex items-center space-x-2 bg-primary-500/20 backdrop-blur-sm px-4 py-2 rounded-full border border-primary-500/30 shadow-lg"
             >
               <EditableContent
                 name="hero_badge"
                 defaultContent="Finance + AI Professional"
-                className="text-sm font-medium text-navy-700"
+                className="text-sm font-medium text-primary-300"
               />
             </motion.div>
 
@@ -68,13 +62,12 @@ const HeroContent: React.FC = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-4xl md:text-6xl font-bold text-navy-900 leading-tight"
+              className="text-4xl md:text-6xl font-bold leading-tight"
             >
               <EditableContent
                 name="hero_title"
                 defaultContent="Hey, Divy here! 👋 Finance Meets Tech"
-                className="block text-transparent bg-clip-text bg-gradient-to-r from-gold-600 to-gold-500"
-                multiline
+                className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-light-100 to-primary-300"
               />
             </motion.h1>
 
@@ -83,11 +76,12 @@ const HeroContent: React.FC = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="text-xl md:text-2xl text-navy-600 leading-relaxed"
+              className="text-xl md:text-2xl text-light-300 leading-relaxed"
             >
               <EditableContent
                 name="hero_subtitle"
                 defaultContent="BCom graduate with a passion for AI. I bridge business strategy with cutting-edge technology to solve real-world problems."
+                className="text-xl md:text-2xl text-light-300 leading-relaxed"
                 multiline
               />
             </motion.p>
@@ -106,7 +100,7 @@ const HeroContent: React.FC = () => {
                     element.scrollIntoView({ behavior: 'smooth' });
                   }
                 }}
-                className="group relative inline-flex items-center space-x-3 bg-gradient-to-r from-gold-600 to-gold-500 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                className="group relative inline-flex items-center space-x-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-xl hover:shadow-2xl hover:shadow-primary-500/25 transform hover:scale-105 transition-all duration-300"
               >
                 <EditableContent
                   name="hero_cta_text"
@@ -132,33 +126,23 @@ const HeroContent: React.FC = () => {
           >
             <div className="relative">
               {/* Main Photo Circle */}
-              <div className="w-80 h-80 md:w-96 md:h-96 rounded-full overflow-hidden shadow-2xl border-4 border-blue-500/30 backdrop-blur-sm transform-gpu">
-                <OptimizedImage
+              <div className="w-80 h-80 md:w-96 md:h-96 rounded-full overflow-hidden shadow-2xl border-4 border-primary-500/30 backdrop-blur-sm">
+                <EditableImage
                   src={content.profile_photo}
                   alt="Profile Photo"
+                  onSave={(imageUrl) => {
+                    // This will be handled by the EditableImage component
+                    console.log('Profile photo updated:', imageUrl);
+                  }}
                   className="w-full h-full object-cover"
-                  placeholder={
-                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black animate-pulse flex items-center justify-center">
-                      <div className="w-24 h-24 bg-blue-500 rounded-full opacity-30" />
-                    </div>
-                  }
                 />
-                {/* Overlay EditableImage for admin functionality */}
-                <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity">
-                  <EditableImage
-                    src={content.profile_photo}
-                    alt="Profile Photo"
-                    onSave={(imageUrl) => saveContent('profile_photo', imageUrl)}
-                    className="w-full h-full object-cover opacity-0"
-                  />
-                </div>
               </div>
               
               {/* Floating Badge */}
               <motion.div
                 animate={{ y: [0, 10, 0] }}
                 transition={{ repeat: Infinity, duration: 4, delay: 1 }}
-                className="absolute -bottom-4 -left-4 bg-navy-600 text-white p-3 rounded-full shadow-lg"
+                className="absolute -bottom-4 -left-4 bg-primary-600 text-white p-3 rounded-full shadow-lg"
               >
                 <EditableContent
                   name="hero_floating_badge"
@@ -179,7 +163,7 @@ const HeroContent: React.FC = () => {
         >
           <button
             onClick={scrollToAbout}
-            className="flex flex-col items-center space-y-2 text-navy-600 hover:text-gold-600 transition-colors group"
+            className="flex flex-col items-center space-y-2 text-light-400 hover:text-primary-400 transition-colors group"
           >
             <EditableContent
               name="hero_scroll_text"
@@ -197,11 +181,6 @@ const HeroContent: React.FC = () => {
       </div>
     </section>
   );
-};
-
-// Main Hero component - no longer needs ContentProvider wrapper since it's handled at page level
-const Hero: React.FC = () => {
-  return <HeroContent />;
 };
 
 export default Hero;

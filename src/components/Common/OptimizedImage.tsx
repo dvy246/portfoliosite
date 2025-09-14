@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
 interface OptimizedImageProps {
@@ -18,65 +18,100 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [imageSrc, setImageSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const preloadRef = useRef<HTMLImageElement | null>(null);
+
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleLoad = useCallback(() => {
+    setIsLoaded(true);
+    setHasError(false);
+  }, []);
+
+  const handleError = useCallback(() => {
+    if (!hasError && fallbackSrc && imageSrc !== fallbackSrc) {
+      setImageSrc(fallbackSrc);
+      setHasError(true);
+      setIsLoaded(false);
+    }
+  }, [hasError, fallbackSrc, imageSrc]);
 
   useEffect(() => {
-    // Preload the image
-    const img = new Image();
-    img.src = src;
+    // Reset states when src changes
+    setIsLoaded(false);
+    setHasError(false);
+    setImageSrc(src);
+
+    // Preload the image to prevent flickering
+    if (preloadRef.current) {
+      preloadRef.current.onload = null;
+      preloadRef.current.onerror = null;
+    }
+
+    preloadRef.current = new Image();
+    preloadRef.current.src = src;
     
-    img.onload = () => {
-      setImageSrc(src);
-      if (imageRef.current?.complete) {
-        setIsLoaded(true);
+    preloadRef.current.onload = () => {
+      // Only update if the component is still mounted and src hasn't changed
+      if (preloadRef.current?.src === src) {
+        setImageSrc(src);
+        // If the actual img element is already loaded, mark as loaded
+        if (imageRef.current?.complete && imageRef.current?.naturalHeight !== 0) {
+          setIsLoaded(true);
+        }
       }
     };
 
-    img.onerror = () => {
-      setImageSrc(fallbackSrc);
+    preloadRef.current.onerror = () => {
+      if (preloadRef.current?.src === src && !hasError && fallbackSrc) {
+        setImageSrc(fallbackSrc);
+        setHasError(true);
+      }
     };
 
     // Clean up
     return () => {
-      img.onload = null;
-      img.onerror = null;
+      if (preloadRef.current) {
+        preloadRef.current.onload = null;
+        preloadRef.current.onerror = null;
+      }
     };
-  }, [src, fallbackSrc]);
-
-  const handleLoad = () => {
-    setIsLoaded(true);
-  };
+  }, [src, fallbackSrc, hasError]);
 
   const defaultPlaceholder = (
-    <div className={`bg-gradient-to-br from-gray-800 to-black animate-pulse flex items-center justify-center ${className}`}>
-      <div className="w-16 h-16 bg-blue-500 rounded-full opacity-50" />
+    <div className={`bg-gradient-to-br from-dark-800 to-dark-900 animate-pulse flex items-center justify-center ${className}`}>
+      <div className="w-16 h-16 bg-primary-500 rounded-full opacity-30" />
     </div>
   );
 
   return (
-    <div className="relative">
-      {/* Placeholder/Loading State */}
+    <div className="relative overflow-hidden">
+      {/* Placeholder/Loading State - only show if not loaded */}
       {!isLoaded && (
         <div className="absolute inset-0 z-10">
           {placeholder || defaultPlaceholder}
         </div>
       )}
       
-      {/* Actual Image */}
+      {/* Actual Image - always rendered to prevent layout shift */}
       <motion.img
         ref={imageRef}
         src={imageSrc}
         alt={alt}
         className={`${className} will-change-transform`}
         onLoad={handleLoad}
+        onError={handleError}
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoaded ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         loading="eager"
         draggable={false}
         style={{ 
           WebkitBackfaceVisibility: 'hidden',
-          backfaceVisibility: 'hidden'
+          backfaceVisibility: 'hidden',
+          // Prevent layout shift
+          minHeight: '100%',
+          minWidth: '100%'
         }}
       />
     </div>

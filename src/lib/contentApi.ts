@@ -5,22 +5,99 @@ export interface BulkContentResult {
   error?: string;
 }
 
+// Enhanced circuit breaker with per-request tracking
+const requestTracker = new Map<string, { attempts: number; lastAttempt: number; blocked: boolean }>();
+const MAX_ATTEMPTS_PER_REQUEST = 3;
+const CIRCUIT_BREAKER_RESET_TIME = 60000; // 1 minute
+const REQUEST_COOLDOWN = 5000; // 5 seconds between retries for same request
+
+// Active request deduplication
+const activeRequests = new Map<string, Promise<BulkContentResult>>();
+
 /**
- * Bulk fetch multiple content items in a single API call with enhanced error handling
- * @param names Array of content names to fetch
- * @returns Object with content map and optional error
+ * FIXED: Bulk fetch with proper retry limits, deduplication, and circuit breaker
  */
 export const bulkFetchContent = async (names: string[]): Promise<BulkContentResult> => {
   if (names.length === 0) {
     return { content: {} };
   }
 
-  try {
-    console.log('🔄 BULK API FETCH for content names:', names);
+  // Create unique key for this request
+  const requestKey = names.sort().join(',');
+  
+  // Check if identical request is already in progress
+  if (activeRequests.has(requestKey)) {
+    console.log('🔄 REUSING ACTIVE REQUEST:', requestKey);
+    return activeRequests.get(requestKey)!;
+  }
 
-    // Add timeout to prevent hanging requests
+  // Check circuit breaker for this specific request
+  const tracker = requestTracker.get(requestKey);
+  const now = Date.now();
+  
+  if (tracker) {
+    // Reset if enough time has passed
+    if (now - tracker.lastAttempt > CIRCUIT_BREAKER_RESET_TIME) {
+      tracker.attempts = 0;
+      tracker.blocked = false;
+    }
+    
+    // Block if too many attempts
+    if (tracker.attempts >= MAX_ATTEMPTS_PER_REQUEST) {
+      if (!tracker.blocked) {
+        console.warn(`🚫 CIRCUIT BREAKER ACTIVATED for request: ${requestKey}`);
+        tracker.blocked = true;
+      }
+      
+      const fallbackContent: Record<string, string> = {};
+      names.forEach(name => {
+        fallbackContent[name] = getFallbackContent(name);
+      });
+      return { content: fallbackContent, error: 'Circuit breaker active - using fallback content' };
+    }
+    
+    // Enforce cooldown between retries
+    if (now - tracker.lastAttempt < REQUEST_COOLDOWN) {
+      console.log(`⏳ REQUEST COOLDOWN: ${Math.ceil((REQUEST_COOLDOWN - (now - tracker.lastAttempt)) / 1000)}s remaining`);
+      const fallbackContent: Record<string, string> = {};
+      names.forEach(name => {
+        fallbackContent[name] = getFallbackContent(name);
+      });
+      return { content: fallbackContent, error: 'Request in cooldown - using fallback content' };
+    }
+  }
+
+  // Create and track the request
+  const requestPromise = performBulkFetch(names, requestKey);
+  activeRequests.set(requestKey, requestPromise);
+
+  try {
+    const result = await requestPromise;
+    return result;
+  } finally {
+    // Clean up active request
+    activeRequests.delete(requestKey);
+  }
+};
+
+/**
+ * Internal fetch implementation with proper error handling
+ */
+const performBulkFetch = async (names: string[], requestKey: string): Promise<BulkContentResult> => {
+  // Initialize or update tracker
+  const tracker = requestTracker.get(requestKey) || { attempts: 0, lastAttempt: 0, blocked: false };
+  tracker.attempts++;
+  tracker.lastAttempt = Date.now();
+  requestTracker.set(requestKey, tracker);
+
+  console.log(`🔄 BULK FETCH (attempt ${tracker.attempts}/${MAX_ATTEMPTS_PER_REQUEST}):`, names);
+
+  try {
+    // Create AbortController with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => {
+      controller.abort('Request timeout');
+    }, 8000); // 8 second timeout
 
     const { data, error: fetchError } = await supabase
       .from('sections')
@@ -31,51 +108,126 @@ export const bulkFetchContent = async (names: string[]): Promise<BulkContentResu
     clearTimeout(timeoutId);
 
     if (fetchError) {
-      console.error('❌ BULK API FETCH ERROR:', fetchError);
-      
-      // Provide more specific error messages
-      let errorMessage = fetchError.message;
-      if (fetchError.code === 'PGRST116') {
-        errorMessage = 'Database connection failed. Please check your internet connection.';
-      } else if (fetchError.code === 'PGRST301') {
-        errorMessage = 'Content table not found. Please contact support.';
-      }
-      
-      return { 
-        content: {},
-        error: errorMessage 
-      };
+      console.error('❌ SUPABASE ERROR:', fetchError);
+      throw new Error(`Database error: ${fetchError.message}`);
     }
 
-    // Create content map from fetched data
+    // SUCCESS: Reset tracker
+    requestTracker.delete(requestKey);
+
+    // Create content map
     const contentMap: Record<string, string> = {};
     names.forEach(name => {
       const found = data?.find((item: any) => item.name === name);
-      contentMap[name] = found?.content || '';
+      contentMap[name] = found?.content || getFallbackContent(name);
     });
 
-    console.log('✅ BULK API FETCH SUCCESS:', contentMap);
-
+    console.log('✅ BULK FETCH SUCCESS:', Object.keys(contentMap));
     return { content: contentMap };
 
   } catch (err: any) {
-    console.error('❌ BULK API FETCH EXCEPTION:', err);
+    console.error(`❌ BULK FETCH ERROR (attempt ${tracker.attempts}):`, err.message);
     
-    // Handle specific error types
-    let errorMessage = err.message;
-    if (err.name === 'AbortError') {
-      errorMessage = 'Request timed out. Please check your internet connection and try again.';
-    } else if (err.message.includes('fetch')) {
-      errorMessage = 'Network error. Please check your internet connection.';
-    } else if (err.message.includes('JSON')) {
-      errorMessage = 'Server response error. Please try again later.';
+    // Don't retry on certain errors
+    const nonRetryableErrors = ['JWT', 'auth', 'permission', 'unauthorized'];
+    const isNonRetryable = nonRetryableErrors.some(keyword => 
+      err.message.toLowerCase().includes(keyword.toLowerCase())
+    );
+    
+    if (isNonRetryable) {
+      console.warn('🚫 NON-RETRYABLE ERROR - blocking further attempts');
+      tracker.attempts = MAX_ATTEMPTS_PER_REQUEST; // Block further attempts
+      tracker.blocked = true;
+      requestTracker.set(requestKey, tracker);
     }
     
+    // Return fallback content instead of throwing
+    const fallbackContent: Record<string, string> = {};
+    names.forEach(name => {
+      fallbackContent[name] = getFallbackContent(name);
+    });
+    
     return { 
-      content: {},
-      error: errorMessage 
+      content: fallbackContent,
+      error: `Failed to load content: ${err.message}`
     };
   }
+};
+
+// Helper function for fallback content - comprehensive fallbacks to prevent any loading text
+const getFallbackContent = (name: string): string => {
+  const fallbacks: Record<string, string> = {
+    // Hero section
+    'hero_title': 'Hey, Divy here! 👋 Finance Meets Tech',
+    'hero_subtitle': 'BCom graduate with a passion for AI. I bridge business strategy with cutting-edge technology to solve real-world problems.',
+    'hero_badge': 'Finance + AI Professional',
+    'hero_cta_text': 'Let\'s Solve Problems Together',
+    'hero_floating_badge': 'AI',
+    'hero_scroll_text': 'Discover More',
+    'profile_photo': 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=800',
+
+    // About section
+    'about_title': 'Where Business Meets Innovation',
+    'about_subtitle': 'The intersection of business intelligence and machine learning is where I thrive.',
+    'about_content': 'My journey began in the world of commerce, where I developed a deep appreciation for analytical rigor and strategic thinking. The BCom (Hons) foundation taught me to see patterns in data, understand market dynamics, and most importantly—translate complex insights into actionable business decisions.',
+    'about_journey_title': 'My Journey',
+
+    // Skills section
+    'skills_title': 'Core',
+    'skills_subtitle': 'Expertise',
+    'skills_ai_title': 'AI & Machine Learning',
+    'skills_business_title': 'Business Analytics',
+    'skills_technical_title': 'Technical Stack',
+    'skills_differentiator_title': 'What Sets Me Apart',
+    'skills_differentiator_subtitle': 'The rare combination of deep technical expertise and business strategic thinking',
+
+    // Individual skills
+    'skill_ai_1': 'Machine Learning',
+    'skill_ai_2': 'Deep Learning',
+    'skill_ai_3': 'Natural Language Processing',
+    'skill_ai_4': 'Computer Vision',
+    'skill_ai_5': 'MLOps',
+    'skill_business_1': 'Financial Modeling',
+    'skill_business_2': 'Business Intelligence',
+    'skill_business_3': 'Decision Optimization',
+    'skill_business_4': 'Market Analysis',
+    'skill_business_5': 'Strategic Planning',
+    'skill_technical_1': 'Python',
+    'skill_technical_2': 'TensorFlow/PyTorch',
+    'skill_technical_3': 'SQL/NoSQL',
+    'skill_technical_4': 'Cloud Platforms',
+    'skill_technical_5': 'Data Visualization',
+
+    // Projects section
+    'cta_section_title': 'Ready to Contribute to Your Team',
+    'cta_section_content': 'These projects represent my journey of learning and growth. I\'m excited to bring this enthusiasm, fresh perspective, and unique combination of business and technical skills to solve real-world challenges.',
+
+    // Contact section
+    'contact_title': 'Let\'s Build the Future Together',
+    'contact_subtitle': 'Ready to transform your business with AI? Let\'s discuss how we can create solutions that drive real impact.',
+    'contact_content': 'Whether you\'re looking to implement AI solutions, need strategic guidance on digital transformation, or want to explore collaboration opportunities, I\'m here to help turn your vision into reality.',
+    'contact_section_title': 'Get in Touch',
+    'contact_email': 'your.email@example.com',
+    'contact_phone': '+1 (555) 123-4567',
+    'contact_location': 'Your City, Country',
+    'contact_social_title': 'Connect With Me',
+    'contact_linkedin_url': 'https://linkedin.com/in/yourprofile',
+    'contact_github_url': 'https://github.com/yourprofile',
+    'contact_twitter_url': 'https://twitter.com/yourprofile',
+    'contact_form_title': 'Start a Conversation',
+    'contact_name_label': 'Full Name *',
+    'contact_email_label': 'Email Address *',
+    'contact_company_label': 'Company/Organization',
+    'contact_message_label': 'Project Details *',
+    'contact_button_text': 'Send Message',
+    'contact_footer_text': 'I typically respond within 24 hours',
+
+    // Certifications
+    'certifications_title': 'Certificates & Continuous Learning'
+  };
+  
+  // Return fallback or a generic professional message - never show "loading"
+  return fallbacks[name] || 'Professional content';
 };
 
 /**
@@ -176,19 +328,6 @@ const getRelatedContentPatterns = (contentName: string): RegExp[] => {
 /**
  * Enhanced content cache implementation with intelligent invalidation and expiration
  */
-const getFallbackContent = (name: string): string => {
-  const fallbacks: Record<string, string> = {
-    'hero_title': 'Welcome to My Portfolio',
-    'hero_subtitle': 'Software Developer & AI Specialist',
-    'hero_badge': 'Available for Projects',
-    'about_title': 'About Me',
-    'skills_title': 'Skills & Expertise',
-    'skills_subtitle': 'My Technical Proficiencies',
-    'projects_title': 'Featured Projects',
-    'contact_title': 'Get in Touch',
-  };
-  return fallbacks[name] || 'Content loading...';
-};
 
 export class ContentCache {
   private cache = new Map<string, { 

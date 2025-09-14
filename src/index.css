@@ -10,21 +10,24 @@
   body {
     font-family: 'Inter', system-ui, sans-serif;
     line-height: 1.6;
+    background-color: #020617; /* dark-950 */
+    color: #f8fafc; /* light-100 */
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, sans-serif;
     line-height: 1.2;
+    color: #ffffff; /* Pure white for headings */
   }
 }
 
 @layer components {
   .prose {
-    @apply text-navy-700;
+    @apply text-light-200;
   }
   
   .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
-    @apply text-navy-900 font-bold;
+    @apply text-white font-bold;
   }
   
   .prose p {
@@ -34,24 +37,53 @@
   .prose-lg {
     @apply text-lg leading-relaxed;
   }
+
+  /* Theme-specific component styles */
+  .bg-section {
+    @apply bg-dark-900;
+  }
+
+  .bg-section-alt {
+    @apply bg-dark-800;
+  }
+
+  .text-primary {
+    @apply text-light-100;
+  }
+
+  .text-secondary {
+    @apply text-light-300;
+  }
+
+  .text-accent {
+    @apply text-primary-500;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-dark-700 hover:bg-dark-600 text-light-100 px-6 py-3 rounded-lg font-semibold transition-all duration-200 border border-dark-600 hover:border-primary-500;
+  }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - dark theme */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #1e293b; /* dark-800 */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #475569; /* dark-600 */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #3b82f6; /* primary-500 */
 }
 
 /* Smooth animations */

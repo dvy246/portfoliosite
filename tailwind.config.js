@@ -7,7 +7,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: {
+        // Primary blue theme
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // Main blue
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554'
+        },
+        // Dark theme colors
+        dark: {
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -20,29 +35,18 @@ export default {
           900: '#0f172a',
           950: '#020617'
         },
-        platinum: {
+        // Light grays for text on dark backgrounds
+        light: {
           50: '#ffffff',
-          100: '#fefefe',
-          200: '#fafafa',
-          300: '#f5f5f5',
-          400: '#efefef',
-          500: '#e5e5e5',
-          600: '#d4d4d4',
-          700: '#a3a3a3',
-          800: '#737373',
-          900: '#525252'
-        },
-        gold: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f'
+          100: '#f8fafc',
+          200: '#f1f5f9',
+          300: '#e2e8f0',
+          400: '#cbd5e1',
+          500: '#94a3b8',
+          600: '#64748b',
+          700: '#475569',
+          800: '#334155',
+          900: '#1e293b'
         }
       },
       fontFamily: {

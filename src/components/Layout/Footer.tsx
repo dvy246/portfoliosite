@@ -1,32 +1,19 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Heart, Shield } from 'lucide-react';
-import { useContentSections } from '../../hooks/useContent';
-import { ContentProvider } from '../../contexts/ContentContext';
-import EditableContent from '../Admin/EditableContent';
 import LoginModal from '../Auth/LoginModal';
 
-// All content names used in the Footer
-const FOOTER_CONTENT_NAMES = [
-  'contact_footer_title',
-  'contact_footer_email',
-  'contact_footer_phone', 
-  'contact_footer_location'
-];
-
-const FooterContent: React.FC = () => {
+const Footer: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const { content } = useContentSections(FOOTER_CONTENT_NAMES);
 
   return (
     <>
-      <footer className="bg-navy-900 text-white py-12">
+      <footer className="bg-dark-950 text-white py-12 border-t border-dark-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Brand */}
             <div>
               <h3 className="text-2xl font-bold mb-4">Divy Yadav</h3>
-              <p className="text-navy-300 leading-relaxed">
+              <p className="text-light-300 leading-relaxed">
                 Bridging the gap between business intelligence and artificial intelligence 
                 to create solutions that drive real-world impact.
               </p>
@@ -36,7 +23,7 @@ const FooterContent: React.FC = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
               <div className="space-y-2">
-                {['About', 'Skills', 'Projects', 'Testimonials', 'Contact'].map((link) => (
+                {['About', 'Skills', 'Projects', 'Contact'].map((link) => (
                   <button
                     key={link}
                     onClick={() => {
@@ -45,7 +32,7 @@ const FooterContent: React.FC = () => {
                         element.scrollIntoView({ behavior: 'smooth' });
                       }
                     }}
-                    className="block text-navy-300 hover:text-gold-400 transition-colors"
+                    className="block text-light-300 hover:text-primary-400 transition-colors"
                   >
                     {link}
                   </button>
@@ -53,39 +40,19 @@ const FooterContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Contact Info - Now Editable */}
+            {/* Contact Info */}
             <div>
-              <h4 className="text-lg font-semibold mb-4">
-                <EditableContent
-                  name="contact_footer_title"
-                  defaultContent="Get in Touch"
-                />
-              </h4>
-              <div className="space-y-2 text-navy-300">
-                <p>
-                  <EditableContent
-                    name="contact_footer_email"
-                    defaultContent="divy.yadav@aiexpert.com"
-                  />
-                </p>
-                <p>
-                  <EditableContent
-                    name="contact_footer_phone"
-                    defaultContent="+1 (555) 123-4567"
-                  />
-                </p>
-                <p>
-                  <EditableContent
-                    name="contact_footer_location"
-                    defaultContent="San Francisco, CA"
-                  />
-                </p>
+              <h4 className="text-lg font-semibold mb-4">Get in Touch</h4>
+              <div className="space-y-2 text-light-300">
+                <p>divy.yadav@aiexpert.com</p>
+                <p>+1 (555) 123-4567</p>
+                <p>San Francisco, CA</p>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-navy-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 text-navy-300">
+          <div className="border-t border-dark-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 text-light-300">
               <span>Made with</span>
               <Heart className="w-4 h-4 text-red-500" />
               <span>by Divy Yadav</span>
@@ -94,12 +61,12 @@ const FooterContent: React.FC = () => {
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className="flex items-center space-x-2 text-navy-400 hover:text-gold-400 transition-colors text-sm"
+                className="flex items-center space-x-2 text-light-400 hover:text-primary-400 transition-colors text-sm"
               >
                 <Shield className="w-4 h-4" />
                 <span>Admin</span>
               </button>
-              <span className="text-navy-400 text-sm">
+              <span className="text-light-400 text-sm">
                 © 2024 All rights reserved
               </span>
             </div>
@@ -112,15 +79,6 @@ const FooterContent: React.FC = () => {
         onClose={() => setIsLoginModalOpen(false)} 
       />
     </>
-  );
-};
-
-// Main Footer component wrapped with ContentProvider for preloading
-const Footer: React.FC = () => {
-  return (
-    <ContentProvider preloadNames={FOOTER_CONTENT_NAMES}>
-      <FooterContent />
-    </ContentProvider>
   );
 };
 

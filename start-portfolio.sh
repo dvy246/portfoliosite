@@ -1,53 +1,38 @@
 #!/bin/bash
 
-echo "🚀 Starting Divy's Portfolio..."
-echo ""
+echo "🚀 Starting Portfolio..."
 
-# Check if Node.js is installed
+# Simple checks
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js first."
-    echo "   Download from: https://nodejs.org/"
+    echo "❌ Node.js not found. Install from: https://nodejs.org/"
     exit 1
 fi
 
-# Check if npm is installed
 if ! command -v npm &> /dev/null; then
-    echo "❌ npm is not installed. Please install npm first."
+    echo "❌ npm not found."
     exit 1
 fi
 
-echo "✅ Node.js version: $(node --version)"
-echo "✅ npm version: $(npm --version)"
-echo ""
+echo "✅ Node: $(node --version)"
+echo "✅ npm: $(npm --version)"
 
-# Check if .env file exists
-if [ ! -f .env ]; then
-    echo "⚠️  No .env file found. Creating from example..."
-    if [ -f .env.example ]; then
-        cp .env.example .env
-        echo "📝 Please edit .env file with your Supabase credentials"
-        echo "   VITE_SUPABASE_URL=your_supabase_url"
-        echo "   VITE_SUPABASE_ANON_KEY=your_supabase_key"
-        echo ""
-    fi
-fi
-
-# Check if node_modules exists
+# Install dependencies if needed
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing dependencies..."
     npm install
-    echo ""
 fi
 
-echo "🔥 Starting development server..."
-echo "📱 Portfolio will open at: http://localhost:5173"
+# Check .env
+if [ ! -f .env ]; then
+    echo "⚠️  No .env file found"
+    echo "📝 Create .env with:"
+    echo "   VITE_SUPABASE_URL=your_url"
+    echo "   VITE_SUPABASE_ANON_KEY=your_key"
+fi
+
 echo ""
-echo "🧪 Testing checklist:"
-echo "   ✅ Profile photo loads without flickering"
-echo "   ✅ Skills section appears smoothly"
-echo "   ✅ Page loads in under 2 seconds"
-echo "   ✅ Mobile responsive design works"
+echo "🔥 Starting server at http://localhost:5173"
 echo ""
 
-# Start the development server
+# Start dev server
 npm run dev

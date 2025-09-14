@@ -39,7 +39,7 @@ const Header: React.FC = () => {
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-lg'
+          ? 'bg-dark-950/95 backdrop-blur-md shadow-lg border-b border-dark-800'
           : 'bg-transparent'
       }`}
     >
@@ -47,7 +47,7 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center py-4">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="text-2xl font-bold text-navy-900"
+            className="text-2xl font-bold text-white"
           >
             Divy Yadav
           </motion.div>
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
               <button
                 key={item.name}
                 onClick={() => scrollToSection(item.href)}
-                className="text-navy-700 hover:text-gold-600 transition-colors duration-200 font-medium"
+                className="text-light-300 hover:text-primary-400 transition-colors duration-200 font-medium"
               >
                 {item.name}
               </button>
@@ -69,11 +69,11 @@ const Header: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             {user?.is_admin && (
               <div className="flex items-center space-x-2">
-                <User className="w-4 h-4 text-gold-600" />
-                <span className="text-sm text-navy-700">Admin</span>
+                <User className="w-4 h-4 text-primary-400" />
+                <span className="text-sm text-light-300">Admin</span>
                 <button
                   onClick={signOut}
-                  className="text-navy-700 hover:text-red-600 transition-colors"
+                  className="text-light-300 hover:text-red-400 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -84,7 +84,7 @@ const Header: React.FC = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden text-navy-900"
+            className="md:hidden text-white"
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -95,13 +95,13 @@ const Header: React.FC = () => {
           <motion.nav
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="md:hidden py-4 border-t border-navy-200"
+            className="md:hidden py-4 border-t border-dark-700"
           >
             {navItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => scrollToSection(item.href)}
-                className="block w-full text-left py-2 text-navy-700 hover:text-gold-600 transition-colors"
+                className="block w-full text-left py-2 text-light-300 hover:text-primary-400 transition-colors"
               >
                 {item.name}
               </button>
@@ -109,7 +109,7 @@ const Header: React.FC = () => {
             {user?.is_admin && (
               <button
                 onClick={signOut}
-                className="block w-full text-left py-2 text-red-600 hover:text-red-700 transition-colors"
+                className="block w-full text-left py-2 text-red-400 hover:text-red-300 transition-colors"
               >
                 Sign Out
               </button>

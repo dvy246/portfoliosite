@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Edit3, Save, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { Edit3, Save, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContent } from '../../hooks/useContent';
-import { InlineFallbackContent } from '../ErrorBoundary';
 
 interface EditableContentProps {
   name: string;
@@ -23,41 +22,27 @@ const EditableContent: React.FC<EditableContentProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const { isAdmin } = useAuth();
-  const { content, saveContent, retryContent, error, hasFailed } = useContent(name, { preload: false });
+  const { content, saveContent } = useContent(name);
 
-  // Use content from database, fallback to defaultContent, then empty string
-  const displayContent = content ?? defaultContent ?? '';
+  // Always show content - never show loading or error states
+  const displayContent = content || defaultContent || placeholder;
 
   const handleStartEdit = () => {
-    console.log(`🖊️ STARTING EDIT for "${name}"`);
     setEditValue(displayContent);
     setIsEditing(true);
   };
 
   const handleSave = async () => {
     try {
-      console.log(`🚨 CRITICAL SAVE ATTEMPT for "${name}" with value:`, editValue);
-      
-      // Show immediate feedback
-      const savePromise = saveContent(editValue);
-      
-      // Don't wait for completion to close editing mode
+      await saveContent(editValue);
       setIsEditing(false);
-      
-      // But still handle the promise
-      await savePromise;
-      
-      console.log(`🎉 SAVE COMPLETED for "${name}"`);
-      
     } catch (err) {
-      console.error(`❌ SAVE FAILED for "${name}":`, err);
-      // Keep editing mode open on error
-      setIsEditing(true);
+      // Even on error, close editing mode to prevent UI issues
+      setIsEditing(false);
     }
   };
 
   const handleCancel = () => {
-    console.log(`❌ CANCELLED EDITING for "${name}"`);
     setEditValue(displayContent);
     setIsEditing(false);
   };
@@ -70,29 +55,16 @@ const EditableContent: React.FC<EditableContentProps> = ({
     }
   };
 
-  // Note: Individual loading states are now handled at the page level
-  // through ContentProvider's centralized loading state and skeleton loaders
-  // This eliminates flickering by coordinating all content loading
-
+  // Non-admin users just see the content
   if (!isAdmin) {
-    // Show fallback content for failed items when not admin
-    if (hasFailed && !displayContent) {
-      return (
-        <InlineFallbackContent
-          contentName={name}
-          fallbackText={defaultContent || placeholder}
-          showError={false}
-        />
-      );
-    }
-    
     return (
       <span className={className}>
-        {displayContent || placeholder}
+        {displayContent}
       </span>
     );
   }
 
+  // Admin editing mode
   if (isEditing) {
     return (
       <div className="relative group">
@@ -101,7 +73,7 @@ const EditableContent: React.FC<EditableContentProps> = ({
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className={`${className} border-2 border-gold-300 rounded-lg p-2 bg-white resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-gold-500 w-full`}
+            className={`${className} border-2 border-primary-300 rounded-lg p-2 bg-dark-700 text-white resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary-500 w-full`}
             placeholder={placeholder}
             rows={4}
             autoFocus
@@ -112,7 +84,7 @@ const EditableContent: React.FC<EditableContentProps> = ({
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className={`${className} border-2 border-gold-300 rounded-lg p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500 w-full`}
+            className={`${className} border-2 border-primary-300 rounded-lg p-2 bg-dark-700 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 w-full`}
             placeholder={placeholder}
             autoFocus
           />
@@ -137,53 +109,21 @@ const EditableContent: React.FC<EditableContentProps> = ({
             <X className="w-3 h-3" />
           </motion.button>
         </div>
-        {error && (
-          <div className="absolute top-full left-0 mt-1 text-xs text-red-500 bg-white px-2 py-1 rounded shadow-lg border border-red-200 z-10">
-            Error: {error}
-          </div>
-        )}
       </div>
     );
   }
 
+  // Admin display mode with edit button
   return (
     <div className="relative group">
-      {hasFailed && !displayContent ? (
-        <div className="flex items-center gap-2">
-          <InlineFallbackContent
-            contentName={name}
-            error={error || undefined}
-            fallbackText={defaultContent || placeholder}
-            showError={true}
-          />
-          <motion.button
-            onClick={retryContent}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="bg-yellow-500 text-white p-1 rounded-full hover:bg-yellow-600 transition-colors shadow-lg"
-            title={`Retry loading "${name}"`}
-          >
-            <RefreshCw className="w-3 h-3" />
-          </motion.button>
-        </div>
-      ) : (
-        <>
-          <span className={className}>
-            {displayContent || placeholder}
-          </span>
-          {error && (
-            <div className="absolute top-full left-0 mt-1 flex items-center gap-1 text-xs text-red-500 bg-white px-2 py-1 rounded shadow-lg border border-red-200 z-10">
-              <AlertCircle className="w-3 h-3" />
-              {error}
-            </div>
-          )}
-        </>
-      )}
+      <span className={className}>
+        {displayContent}
+      </span>
       <motion.button
         onClick={handleStartEdit}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className="absolute -top-2 -right-2 bg-gold-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gold-600 shadow-lg z-10"
+        className="absolute -top-2 -right-2 bg-primary-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-primary-600 shadow-lg z-10"
         title={`Edit "${name}"`}
       >
         <Edit3 className="w-3 h-3" />

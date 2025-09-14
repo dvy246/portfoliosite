@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, Linkedin, Github, Twitter } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Linkedin, Github } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { useContentSections } from '../../hooks/useContent';
-import { useSectionLoader } from '../../contexts/PageContentContext';
+import { useStableContent } from '../../hooks/useStableContent';
 import EditableContent from '../Admin/EditableContent';
-import ContentSkeleton from '../Loading/ContentSkeleton';
 import toast from 'react-hot-toast';
 
 interface ContactForm {
@@ -15,7 +13,6 @@ interface ContactForm {
   message: string;
 }
 
-// All content names used in the Contact section
 const CONTACT_CONTENT_NAMES = [
   'contact_title',
   'contact_subtitle',
@@ -37,11 +34,10 @@ const CONTACT_CONTENT_NAMES = [
   'contact_footer_text'
 ];
 
-const ContactContent: React.FC = () => {
+const Contact: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactForm>();
-  const { content, saveContent } = useContentSections(CONTACT_CONTENT_NAMES);
-  const { isSectionLoading } = useSectionLoader('contact', CONTACT_CONTENT_NAMES);
+  const { content } = useStableContent(CONTACT_CONTENT_NAMES);
 
   const onSubmit = async (data: ContactForm) => {
     setIsSubmitting(true);
@@ -57,81 +53,8 @@ const ContactContent: React.FC = () => {
     }
   };
 
-  // Show skeleton loaders during loading
-  if (isSectionLoading) {
-    return (
-      <section id="contact" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <ContentSkeleton type="title" className="mx-auto mb-6" width="large" />
-            <ContentSkeleton type="paragraph" lines={2} className="max-w-3xl mx-auto" />
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Information Skeleton */}
-            <div className="space-y-8">
-              <div>
-                <ContentSkeleton type="title" width="medium" className="mb-6" />
-                <ContentSkeleton type="paragraph" lines={3} className="mb-8" />
-              </div>
-
-              {/* Contact Details Skeleton */}
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md">
-                    <ContentSkeleton type="button" className="w-12 h-12 rounded-xl" />
-                    <div className="flex-1">
-                      <ContentSkeleton type="text" width="small" className="mb-1" />
-                      <ContentSkeleton type="text" width="medium" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Social Links Skeleton */}
-              <div>
-                <ContentSkeleton type="text" width="medium" className="mb-4" />
-                <div className="flex space-x-4">
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <ContentSkeleton key={index} type="button" className="w-12 h-12 rounded-xl" />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Form Skeleton */}
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <ContentSkeleton type="title" width="medium" className="mb-6" />
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <ContentSkeleton type="text" width="small" className="mb-2" />
-                    <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
-                  </div>
-                  <div>
-                    <ContentSkeleton type="text" width="small" className="mb-2" />
-                    <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
-                  </div>
-                </div>
-                <div>
-                  <ContentSkeleton type="text" width="small" className="mb-2" />
-                  <ContentSkeleton type="button" className="w-full h-12 rounded-xl" />
-                </div>
-                <div>
-                  <ContentSkeleton type="text" width="small" className="mb-2" />
-                  <ContentSkeleton type="button" className="w-full h-32 rounded-xl" />
-                </div>
-                <ContentSkeleton type="button" className="w-full h-14 rounded-xl" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="contact" className="py-20 bg-gradient-to-br from-navy-50 to-platinum-50">
+    <section id="contact" className="py-20 bg-dark-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -140,16 +63,18 @@ const ContactContent: React.FC = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-navy-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             <EditableContent
               name="contact_title"
               defaultContent="Let's Build the Future Together"
+              className="text-4xl md:text-5xl font-bold text-white"
             />
           </h2>
-          <p className="text-xl text-navy-600 max-w-3xl mx-auto">
+          <p className="text-xl text-light-300 max-w-3xl mx-auto">
             <EditableContent
               name="contact_subtitle"
               defaultContent="Ready to transform your business with AI? Let's discuss how we can create solutions that drive real impact."
+              className="text-xl text-light-300"
               multiline
             />
           </p>
@@ -165,69 +90,72 @@ const ContactContent: React.FC = () => {
             className="space-y-8"
           >
             <div>
-              <h3 className="text-2xl font-bold text-navy-900 mb-6">
+              <h3 className="text-2xl font-bold text-white mb-6">
                 <EditableContent
                   name="contact_section_title"
                   defaultContent="Get in Touch"
+                  className="text-2xl font-bold text-white"
                 />
               </h3>
-              <EditableContent
-                name="contact_content"
-                defaultContent="Whether you're looking to implement AI solutions, need strategic guidance on digital transformation, or want to explore collaboration opportunities, I'm here to help turn your vision into reality."
-                multiline
-                className="text-navy-600 leading-relaxed mb-8"
-              />
+              <p className="text-light-300 leading-relaxed mb-8">
+                <EditableContent
+                  name="contact_content"
+                  defaultContent="Whether you're looking to implement AI solutions, need strategic guidance on digital transformation, or want to explore collaboration opportunities, I'm here to help turn your vision into reality."
+                  className="text-light-300 leading-relaxed"
+                  multiline
+                />
+              </p>
             </div>
 
             {/* Contact Details */}
             <div className="space-y-4">
               <motion.div
                 whileHover={{ x: 5 }}
-                className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 group"
+                className="flex items-center space-x-4 p-4 bg-dark-800 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-300 group border border-dark-700 hover:border-primary-500/30"
               >
-                <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center group-hover:bg-gold-200 transition-colors">
-                  <Mail className="w-6 h-6 text-gold-600" />
+                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center group-hover:bg-primary-500/30 transition-colors">
+                  <Mail className="w-6 h-6 text-primary-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-navy-500 font-medium">Email</p>
+                  <p className="text-sm text-light-400 font-medium">Email</p>
                   <EditableContent
                     name="contact_email"
                     defaultContent="your.email@example.com"
-                    className="text-navy-900 font-semibold"
+                    className="text-white font-semibold"
                   />
                 </div>
               </motion.div>
 
               <motion.div
                 whileHover={{ x: 5 }}
-                className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 group"
+                className="flex items-center space-x-4 p-4 bg-dark-800 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-300 group border border-dark-700 hover:border-primary-500/30"
               >
-                <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center group-hover:bg-gold-200 transition-colors">
-                  <Phone className="w-6 h-6 text-gold-600" />
+                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center group-hover:bg-primary-500/30 transition-colors">
+                  <Phone className="w-6 h-6 text-primary-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-navy-500 font-medium">Phone</p>
+                  <p className="text-sm text-light-400 font-medium">Phone</p>
                   <EditableContent
                     name="contact_phone"
                     defaultContent="+1 (555) 123-4567"
-                    className="text-navy-900 font-semibold"
+                    className="text-white font-semibold"
                   />
                 </div>
               </motion.div>
 
               <motion.div
                 whileHover={{ x: 5 }}
-                className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 group"
+                className="flex items-center space-x-4 p-4 bg-dark-800 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-300 group border border-dark-700 hover:border-primary-500/30"
               >
-                <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center group-hover:bg-gold-200 transition-colors">
-                  <MapPin className="w-6 h-6 text-gold-600" />
+                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center group-hover:bg-primary-500/30 transition-colors">
+                  <MapPin className="w-6 h-6 text-primary-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-navy-500 font-medium">Location</p>
+                  <p className="text-sm text-light-400 font-medium">Location</p>
                   <EditableContent
                     name="contact_location"
                     defaultContent="Your City, Country"
-                    className="text-navy-900 font-semibold"
+                    className="text-white font-semibold"
                   />
                 </div>
               </motion.div>
@@ -235,69 +163,52 @@ const ContactContent: React.FC = () => {
 
             {/* Social Links */}
             <div>
-              <h4 className="text-lg font-semibold text-navy-900 mb-4">
+              <h4 className="text-lg font-semibold text-white mb-4">
                 <EditableContent
                   name="contact_social_title"
                   defaultContent="Connect With Me"
+                  className="text-lg font-semibold text-white"
                 />
               </h4>
               <div className="flex space-x-4">
                 <motion.a
-                  href={content.contact_linkedin_url || 'https://linkedin.com/in/yourprofile'}
+                  href={content.contact_linkedin_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center text-navy-600 hover:text-blue-600 transition-all duration-300"
+                  className="w-12 h-12 bg-dark-800 border border-dark-700 hover:border-primary-500/30 rounded-xl shadow-md flex items-center justify-center text-light-400 hover:text-primary-400 transition-all duration-300"
                 >
                   <Linkedin className="w-5 h-5" />
                 </motion.a>
                 <motion.a
-                  href={content.contact_github_url || 'https://github.com/yourprofile'}
+                  href={content.contact_github_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center text-navy-600 hover:text-gray-800 transition-all duration-300"
+                  className="w-12 h-12 bg-dark-800 border border-dark-700 hover:border-primary-500/30 rounded-xl shadow-md flex items-center justify-center text-light-400 hover:text-white transition-all duration-300"
                 >
                   <Github className="w-5 h-5" />
-                </motion.a>
-                <motion.a
-                  href={content.contact_twitter_url || 'https://twitter.com/yourprofile'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center text-navy-600 hover:text-blue-400 transition-all duration-300"
-                >
-                  <Twitter className="w-5 h-5" />
                 </motion.a>
               </div>
               
               {/* Editable Social Links */}
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center">
-                  <span className="text-navy-500 w-20">LinkedIn:</span>
+                  <span className="text-light-400 w-20">LinkedIn:</span>
                   <EditableContent
                     name="contact_linkedin_url"
                     defaultContent="https://linkedin.com/in/yourprofile"
-                    className="text-navy-700 flex-1"
+                    className="text-light-200 flex-1"
                   />
                 </div>
                 <div className="flex items-center">
-                  <span className="text-navy-500 w-20">GitHub:</span>
+                  <span className="text-light-400 w-20">GitHub:</span>
                   <EditableContent
                     name="contact_github_url"
                     defaultContent="https://github.com/yourprofile"
-                    className="text-navy-700 flex-1"
-                  />
-                </div>
-                <div className="flex items-center">
-                  <span className="text-navy-500 w-20">Twitter:</span>
-                  <EditableContent
-                    name="contact_twitter_url"
-                    defaultContent="https://twitter.com/yourprofile"
-                    className="text-navy-700 flex-1"
+                    className="text-light-200 flex-1"
                   />
                 </div>
               </div>
@@ -310,40 +221,43 @@ const ContactContent: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="bg-white rounded-2xl shadow-xl p-8"
+            className="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl p-8"
           >
-            <h3 className="text-2xl font-bold text-navy-900 mb-6">
+            <h3 className="text-2xl font-bold text-white mb-6">
               <EditableContent
                 name="contact_form_title"
                 defaultContent="Start a Conversation"
+                className="text-2xl font-bold text-white"
               />
             </h3>
             
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-navy-700 mb-2">
+                  <label className="block text-sm font-medium text-light-300 mb-2">
                     <EditableContent
                       name="contact_name_label"
                       defaultContent="Full Name *"
+                      className="text-sm font-medium text-light-300"
                     />
                   </label>
                   <input
                     {...register('name', { required: 'Name is required' })}
                     type="text"
-                    className="w-full px-4 py-3 border border-navy-200 rounded-xl focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-dark-600 bg-dark-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="Your full name"
                   />
                   {errors.name && (
-                    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+                    <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-navy-700 mb-2">
+                  <label className="block text-sm font-medium text-light-300 mb-2">
                     <EditableContent
                       name="contact_email_label"
                       defaultContent="Email Address *"
+                      className="text-sm font-medium text-light-300"
                     />
                   </label>
                   <input
@@ -355,45 +269,47 @@ const ContactContent: React.FC = () => {
                       }
                     })}
                     type="email"
-                    className="w-full px-4 py-3 border border-navy-200 rounded-xl focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-dark-600 bg-dark-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="your.email@company.com"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                    <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-navy-700 mb-2">
+                <label className="block text-sm font-medium text-light-300 mb-2">
                   <EditableContent
                     name="contact_company_label"
                     defaultContent="Company/Organization"
+                    className="text-sm font-medium text-light-300"
                   />
                 </label>
                 <input
                   {...register('company')}
                   type="text"
-                  className="w-full px-4 py-3 border border-navy-200 rounded-xl focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-dark-600 bg-dark-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                   placeholder="Your company name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-navy-700 mb-2">
+                <label className="block text-sm font-medium text-light-300 mb-2">
                   <EditableContent
                     name="contact_message_label"
                     defaultContent="Project Details *"
+                    className="text-sm font-medium text-light-300"
                   />
                 </label>
                 <textarea
                   {...register('message', { required: 'Message is required' })}
                   rows={5}
-                  className="w-full px-4 py-3 border border-navy-200 rounded-xl focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all duration-200 resize-none"
+                  className="w-full px-4 py-3 border border-dark-600 bg-dark-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 resize-none"
                   placeholder="Tell me about your project, challenges, and goals."
                 />
                 {errors.message && (
-                  <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.message.message}</p>
                 )}
               </div>
 
@@ -402,7 +318,7 @@ const ContactContent: React.FC = () => {
                 disabled={isSubmitting}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full bg-gradient-to-r from-gold-600 to-gold-500 text-white py-4 px-6 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-500 text-white py-4 px-6 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -419,10 +335,11 @@ const ContactContent: React.FC = () => {
               </motion.button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-navy-500">
+            <div className="mt-6 text-center text-sm text-light-400">
               <EditableContent
                 name="contact_footer_text"
                 defaultContent="I typically respond within 24 hours. For urgent matters, feel free to call directly."
+                className="text-sm text-light-400"
                 multiline
               />
             </div>
@@ -431,11 +348,6 @@ const ContactContent: React.FC = () => {
       </div>
     </section>
   );
-};
-
-// Main Contact component - no longer needs ContentProvider wrapper
-const Contact: React.FC = () => {
-  return <ContactContent />;
 };
 
 export default Contact;

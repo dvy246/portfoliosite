@@ -1,113 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Database, RefreshCw, Trash2, Activity } from 'lucide-react';
 import { useContentContext } from '../../contexts/ContentContext';
 
-interface CacheMonitorProps {
-  isVisible?: boolean;
-}
-
-export const CacheMonitor: React.FC<CacheMonitorProps> = ({ isVisible = false }) => {
-  const { getCacheStats, refreshContent, invalidateContent } = useContentContext();
-  const [stats, setStats] = useState<any>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Update stats periodically
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const updateStats = () => {
-      setStats(getCacheStats());
-    };
-
-    updateStats();
-    const interval = setInterval(updateStats, 2000); // Update every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [isVisible, getCacheStats]);
-
-  if (!isVisible || !stats) {
-    return null;
-  }
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
-
-  const formatTime = (ms: number) => {
-    if (ms < 1000) return `${Math.round(ms)}ms`;
-    return `${Math.round(ms / 1000)}s`;
-  };
+const CacheMonitor: React.FC = () => {
+  const { error } = useContentContext();
 
   return (
-    <div className="fixed bottom-4 right-4 bg-gray-900 text-white p-4 rounded-lg shadow-lg text-xs font-mono z-50 max-w-sm">
-      <div
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <h3 className="font-semibold">Cache Monitor</h3>
-        <span className="text-gray-400">{isExpanded ? '−' : '+'}</span>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg shadow-lg p-6"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <Database className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Content Cache Monitor</h3>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm text-gray-600">Active</span>
+        </div>
       </div>
 
-      {isExpanded && (
-        <div className="mt-2 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+      {/* Cache Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-gray-400">Items:</div>
-              <div className="text-green-400">{stats.totalItems}</div>
+              <p className="text-sm font-medium text-blue-600">Total Items</p>
+              <p className="text-2xl font-bold text-blue-900">--</p>
             </div>
-            <div>
-              <div className="text-gray-400">Memory:</div>
-              <div className="text-blue-400">{formatBytes(stats.memoryUsage)}</div>
-            </div>
-            <div>
-              <div className="text-gray-400">Stale:</div>
-              <div className="text-yellow-400">{stats.staleItems}</div>
-            </div>
-            <div>
-              <div className="text-gray-400">Expired:</div>
-              <div className="text-red-400">{stats.expiredItems}</div>
-            </div>
-          </div>
-
-          <div>
-            <div className="text-gray-400">Avg Age:</div>
-            <div className="text-gray-300">{formatTime(stats.averageAge)}</div>
-          </div>
-
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => {
-                // Refresh all content (this is for demo - in real app you'd be more selective)
-                const allContentNames = [
-                  'hero_title', 'hero_subtitle', 'about_title', 'about_content',
-                  'skills_title', 'skills_subtitle'
-                ];
-                refreshContent(allContentNames).catch(console.error);
-              }}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-            >
-              Refresh
-            </button>
-            <button
-              onClick={() => {
-                // Clear cache (this is for demo - in real app you'd be more selective)
-                const allContentNames = [
-                  'hero_title', 'hero_subtitle', 'about_title', 'about_content',
-                  'skills_title', 'skills_subtitle'
-                ];
-                invalidateContent(allContentNames);
-              }}
-              className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-            >
-              Clear
-            </button>
+            <Activity className="w-8 h-8 text-blue-500" />
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="bg-green-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-600">Hit Rate</p>
+              <p className="text-2xl font-bold text-green-900">--</p>
+            </div>
+            <Database className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-yellow-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-yellow-600">Stale Items</p>
+              <p className="text-2xl font-bold text-yellow-900">--</p>
+            </div>
+            <RefreshCw className="w-8 h-8 text-yellow-500" />
+          </div>
+        </div>
+
+        <div className="bg-red-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-600">Errors</p>
+              <p className="text-2xl font-bold text-red-900">{error ? '1' : '0'}</p>
+            </div>
+            <Trash2 className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="border-t pt-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Cache Status</span>
+          <span className="text-sm font-medium text-green-600">Operational</span>
+        </div>
+        {error && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

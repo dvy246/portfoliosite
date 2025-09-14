@@ -2,35 +2,17 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Brain, Target, Award } from 'lucide-react';
 import { useStableContent } from '../../hooks/useStableContent';
-import { useSectionLoader } from '../../contexts/PageContentContext';
 import EditableContent from '../Admin/EditableContent';
-import ContentSkeleton from '../Loading/ContentSkeleton';
-import { ContentErrorBoundary, FallbackContent } from '../ErrorBoundary';
 
-// All content names used in the About section
 const ABOUT_CONTENT_NAMES = [
   'about_title',
   'about_subtitle',
   'about_content',
-  'about_journey_title',
-  'about_highlight_1_title',
-  'about_highlight_1_desc',
-  'about_highlight_2_title',
-  'about_highlight_2_desc',
-  'about_highlight_3_title',
-  'about_highlight_3_desc',
-  'about_highlight_4_title',
-  'about_highlight_4_desc'
+  'about_journey_title'
 ];
 
-const AboutContent: React.FC = () => {
-  const { content } = useStableContent([
-    'about_title',
-    'about_subtitle',
-    'about_content',
-    'about_journey_title'
-  ]);
-  const { isSectionLoading } = useSectionLoader('about', ABOUT_CONTENT_NAMES);
+const About: React.FC = () => {
+  const { content } = useStableContent(ABOUT_CONTENT_NAMES);
 
   const highlights = [
     {
@@ -55,10 +37,8 @@ const AboutContent: React.FC = () => {
     }
   ];
 
-  // No skeleton loading needed - using stable content
-
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-dark-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -67,16 +47,18 @@ const AboutContent: React.FC = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-navy-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             <EditableContent
               name="about_title"
               defaultContent="Where Business Meets Innovation"
+              className="text-4xl md:text-5xl font-bold text-white"
             />
           </h2>
-          <p className="text-xl text-navy-600 max-w-3xl mx-auto">
+          <p className="text-xl text-light-300 max-w-3xl mx-auto">
             <EditableContent
               name="about_subtitle"
               defaultContent="The intersection of business intelligence and machine learning is where I thrive."
+              className="text-xl text-light-300"
               multiline
             />
           </p>
@@ -91,20 +73,23 @@ const AboutContent: React.FC = () => {
             viewport={{ once: true }}
             className="space-y-6"
           >
-            <h3 className="text-3xl font-bold text-navy-900 mb-6">
+            <h3 className="text-3xl font-bold text-white mb-6">
               <EditableContent
                 name="about_journey_title"
                 defaultContent="My Journey"
+                className="text-3xl font-bold text-white"
               />
             </h3>
             
-            <div className="prose prose-lg text-navy-700 space-y-4">
-              <EditableContent
-                name="about_content"
-                defaultContent="My journey began in the world of commerce, where I developed a deep appreciation for analytical rigor and strategic thinking. The BCom (Hons) foundation taught me to see patterns in data, understand market dynamics, and most importantly—translate complex insights into actionable business decisions."
-                multiline
-                className="leading-relaxed"
-              />
+            <div className="prose prose-lg text-light-200 space-y-4">
+              <p className="leading-relaxed text-light-200">
+                <EditableContent
+                  name="about_content"
+                  defaultContent="My journey began in the world of commerce, where I developed a deep appreciation for analytical rigor and strategic thinking. The BCom (Hons) foundation taught me to see patterns in data, understand market dynamics, and most importantly—translate complex insights into actionable business decisions."
+                  className="leading-relaxed text-light-200"
+                  multiline
+                />
+              </p>
             </div>
           </motion.div>
 
@@ -123,23 +108,16 @@ const AboutContent: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1, duration: 0.6 }}
                 viewport={{ once: true }}
-                className="bg-gradient-to-br from-white to-navy-50 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-navy-100"
+                className="bg-gradient-to-br from-dark-800 to-dark-700 p-6 rounded-2xl shadow-lg hover:shadow-xl hover:shadow-primary-500/10 transition-all duration-300 border border-dark-600 hover:border-primary-500/30"
               >
-                <div className="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center mb-4">
-                  <highlight.icon className="w-6 h-6 text-gold-600" />
+                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <highlight.icon className="w-6 h-6 text-primary-400" />
                 </div>
-                <h4 className="text-lg font-semibold text-navy-900 mb-2">
-                  <EditableContent
-                    name={`about_highlight_${index + 1}_title`}
-                    defaultContent={highlight.title}
-                  />
+                <h4 className="text-lg font-semibold text-white mb-2">
+                  {highlight.title}
                 </h4>
-                <p className="text-navy-600 text-sm leading-relaxed">
-                  <EditableContent
-                    name={`about_highlight_${index + 1}_desc`}
-                    defaultContent={highlight.description}
-                    multiline
-                  />
+                <p className="text-light-300 text-sm leading-relaxed">
+                  {highlight.description}
                 </p>
               </motion.div>
             ))}
@@ -147,28 +125,6 @@ const AboutContent: React.FC = () => {
         </div>
       </div>
     </section>
-  );
-};
-
-// Main About component with ErrorBoundary - no longer needs ContentProvider wrapper
-const About: React.FC = () => {
-  return (
-    <ContentErrorBoundary
-      fallback={
-        <section id="about" className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <FallbackContent
-              contentName="About Section"
-              fallbackText="This section is temporarily unavailable. Please refresh the page or try again later."
-              showError={true}
-            />
-          </div>
-        </section>
-      }
-      onRetry={() => window.location.reload()}
-    >
-      <AboutContent />
-    </ContentErrorBoundary>
   );
 };
 

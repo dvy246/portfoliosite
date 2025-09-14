@@ -3,10 +3,8 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Github, TrendingUp, Award, Zap, BookOpen, Edit3, Save, X, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { useContentSections } from '../../hooks/useContent';
-import { useSectionLoader } from '../../contexts/PageContentContext';
+import { useStableContent } from '../../hooks/useStableContent';
 import EditableContent from '../Admin/EditableContent';
-import ContentSkeleton from '../Loading/ContentSkeleton';
 import toast from 'react-hot-toast';
 
 interface Project {
@@ -21,19 +19,17 @@ interface Project {
   order_index: number;
 }
 
-// All content names used in the Projects section
 const PROJECTS_CONTENT_NAMES = [
   'cta_section_title',
   'cta_section_content'
 ];
 
-const ProjectsContent: React.FC = () => {
+const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Project>>({});
   const { isAdmin } = useAuth();
-  const { content } = useContentSections(PROJECTS_CONTENT_NAMES);
-  const { isSectionLoading } = useSectionLoader('projects', PROJECTS_CONTENT_NAMES);
+  const { content } = useStableContent(PROJECTS_CONTENT_NAMES);
 
   useEffect(() => {
     fetchProjects();
@@ -49,7 +45,6 @@ const ProjectsContent: React.FC = () => {
       if (error) throw error;
       setProjects(data || []);
     } catch (error) {
-      console.error('Error fetching projects:', error);
       // Set default projects if database fails
       setProjects([
         {
@@ -191,47 +186,8 @@ const ProjectsContent: React.FC = () => {
     }
   };
 
-  // Show skeleton loaders during loading
-  if (isSectionLoading) {
-    return (
-      <section id="projects" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <ContentSkeleton type="title" className="mx-auto mb-6" width="large" />
-            <ContentSkeleton type="paragraph" lines={1} className="max-w-3xl mx-auto" />
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8">
-            {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="bg-gradient-to-br from-white to-navy-50 rounded-2xl shadow-lg p-6">
-                <ContentSkeleton type="button" className="w-full h-48 mb-6 rounded-xl" />
-                <ContentSkeleton type="title" width="large" className="mb-3" />
-                <ContentSkeleton type="paragraph" lines={3} className="mb-4" />
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {Array.from({ length: 4 }).map((_, techIndex) => (
-                    <ContentSkeleton key={techIndex} type="button" className="h-6 w-16 rounded-full" />
-                  ))}
-                </div>
-                <ContentSkeleton type="paragraph" lines={2} />
-              </div>
-            ))}
-          </div>
-
-          {/* CTA Section Skeleton */}
-          <div className="text-center mt-16">
-            <div className="bg-gradient-to-r from-navy-900 to-navy-800 rounded-2xl p-8">
-              <ContentSkeleton type="title" width="medium" className="mx-auto mb-4" />
-              <ContentSkeleton type="paragraph" lines={2} className="max-w-2xl mx-auto mb-6" />
-              <ContentSkeleton type="button" className="h-12 w-48 mx-auto rounded-full" />
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="projects" className="py-20 bg-white">
+    <section id="projects" className="py-20 bg-dark-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -241,19 +197,19 @@ const ProjectsContent: React.FC = () => {
           className="text-center mb-16"
         >
           <div className="flex items-center justify-center space-x-4">
-            <h2 className="text-4xl md:text-5xl font-bold text-navy-900 mb-6">
-              Learning Through <span className="text-gold-600">Projects</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Learning Through <span className="text-primary-400">Projects</span>
             </h2>
             {isAdmin && (
               <button
                 onClick={addProject}
-                className="bg-gold-500 text-white p-2 rounded-full hover:bg-gold-600 transition-colors"
+                className="bg-primary-500 text-white p-2 rounded-full hover:bg-primary-600 transition-colors"
               >
                 <Plus className="w-5 h-5" />
               </button>
             )}
           </div>
-          <p className="text-xl text-navy-600 max-w-3xl mx-auto">
+          <p className="text-xl text-light-300 max-w-3xl mx-auto">
             Hands-on projects that demonstrate the practical application of AI and business knowledge
           </p>
         </motion.div>
@@ -266,7 +222,7 @@ const ProjectsContent: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.2, duration: 0.8 }}
               viewport={{ once: true }}
-              className="group bg-gradient-to-br from-white to-navy-50 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-navy-100 relative"
+              className="group bg-gradient-to-br from-dark-800 to-dark-700 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 overflow-hidden border border-dark-600 hover:border-primary-500/30 relative"
             >
               {isAdmin && (
                 <div className="absolute top-4 right-4 z-10 flex space-x-2">
@@ -289,7 +245,7 @@ const ProjectsContent: React.FC = () => {
                     <>
                       <button
                         onClick={() => startEditing(project)}
-                        className="bg-gold-500 text-white p-2 rounded-full hover:bg-gold-600 transition-colors"
+                        className="bg-primary-500 text-white p-2 rounded-full hover:bg-primary-600 transition-colors"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
@@ -380,11 +336,11 @@ const ProjectsContent: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-xl font-bold text-navy-900 mb-3 group-hover:text-gold-600 transition-colors">
+                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-primary-400 transition-colors">
                       {project.title}
                     </h3>
                     
-                    <p className="text-navy-600 mb-4 leading-relaxed">
+                    <p className="text-light-300 mb-4 leading-relaxed">
                       {project.description}
                     </p>
 
@@ -393,7 +349,7 @@ const ProjectsContent: React.FC = () => {
                       {project.technologies.map((tech) => (
                         <span
                           key={tech}
-                          className="px-3 py-1 bg-navy-100 text-navy-700 text-xs font-medium rounded-full"
+                          className="px-3 py-1 bg-primary-500/20 text-primary-300 text-xs font-medium rounded-full"
                         >
                           {tech}
                         </span>
@@ -401,9 +357,9 @@ const ProjectsContent: React.FC = () => {
                     </div>
 
                     {/* Outcome */}
-                    <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-4 rounded-xl mb-4">
-                      <h4 className="text-sm font-semibold text-gold-800 mb-1">Key Outcomes</h4>
-                      <p className="text-gold-700 text-sm font-medium">{project.outcome}</p>
+                    <div className="bg-gradient-to-r from-primary-500/20 to-primary-600/20 p-4 rounded-xl mb-4 border border-primary-500/30">
+                      <h4 className="text-sm font-semibold text-primary-300 mb-1">Key Outcomes</h4>
+                      <p className="text-primary-200 text-sm font-medium">{project.outcome}</p>
                     </div>
 
                     {/* Action Buttons */}
@@ -413,7 +369,7 @@ const ProjectsContent: React.FC = () => {
                           href={project.project_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-navy-600 hover:text-gold-600 transition-colors text-sm font-medium"
+                          className="flex items-center space-x-2 text-light-400 hover:text-primary-400 transition-colors text-sm font-medium"
                         >
                           <ExternalLink className="w-4 h-4" />
                           <span>View Demo</span>
@@ -424,7 +380,7 @@ const ProjectsContent: React.FC = () => {
                           href={project.github_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-navy-600 hover:text-gold-600 transition-colors text-sm font-medium"
+                          className="flex items-center space-x-2 text-light-400 hover:text-primary-400 transition-colors text-sm font-medium"
                         >
                           <Github className="w-4 h-4" />
                           <span>Source Code</span>
@@ -438,7 +394,7 @@ const ProjectsContent: React.FC = () => {
           ))}
         </div>
 
-        {/* Call to Action - Now Editable */}
+        {/* Call to Action */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -446,20 +402,20 @@ const ProjectsContent: React.FC = () => {
           viewport={{ once: true }}
           className="text-center mt-16"
         >
-          <div className="bg-gradient-to-r from-navy-900 to-navy-800 rounded-2xl p-8 text-white">
-            <h3 className="text-2xl font-bold mb-4">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 text-white shadow-xl">
+            <h3 className="text-2xl font-bold mb-4 text-white">
               <EditableContent
                 name="cta_section_title"
                 defaultContent="Ready to Contribute to Your Team"
-                className="text-white"
+                className="text-2xl font-bold text-white"
               />
             </h3>
-            <p className="text-navy-200 mb-6 max-w-2xl mx-auto">
+            <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
               <EditableContent
                 name="cta_section_content"
                 defaultContent="These projects represent my journey of learning and growth. I'm excited to bring this enthusiasm, fresh perspective, and unique combination of business and technical skills to solve real-world challenges."
+                className="text-primary-100"
                 multiline
-                className="text-navy-200"
               />
             </p>
             <button
@@ -469,7 +425,7 @@ const ProjectsContent: React.FC = () => {
                   element.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="bg-gold-600 hover:bg-gold-500 text-white px-8 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105"
+              className="bg-white text-primary-600 hover:bg-light-100 px-8 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
               Let's Discuss Opportunities
             </button>
@@ -478,11 +434,6 @@ const ProjectsContent: React.FC = () => {
       </div>
     </section>
   );
-};
-
-// Main Projects component - no longer needs ContentProvider wrapper
-const Projects: React.FC = () => {
-  return <ProjectsContent />;
 };
 
 export default Projects;

@@ -1,101 +1,83 @@
 import React, { useState } from 'react';
-import { ContentErrorBoundary } from './ContentErrorBoundary';
-import { FallbackContent, InlineFallbackContent } from './FallbackContent';
-import { ContentProvider, useContentContext } from '../../contexts/ContentContext';
+import { motion } from 'framer-motion';
+import { AlertTriangle, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { useContentContext } from '../../contexts/ContentContext';
 
-// Component that intentionally throws an error for testing
-const ErrorThrowingComponent: React.FC<{ shouldThrow: boolean }> = ({ shouldThrow }) => {
-  if (shouldThrow) {
-    throw new Error('Test error for error boundary');
-  }
-  
-  return <div>This component works fine!</div>;
-};
+const ErrorHandlingDemo: React.FC = () => {
+  const { error } = useContentContext();
+  const [isRetrying, setIsRetrying] = useState(false);
 
-// Component to test content context error handling
-const ContentErrorDemo: React.FC = () => {
-  const { error, failedItems, retryFailedContent } = useContentContext();
-  
+  const simulateRetry = async () => {
+    setIsRetrying(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsRetrying(false);
+  };
+
   return (
-    <div className="p-4 border rounded">
-      <h3 className="font-bold mb-2">Content Context Error Demo</h3>
-      <p>Error: {error || 'None'}</p>
-      <p>Failed Items: {Array.from(failedItems).join(', ') || 'None'}</p>
-      {failedItems.size > 0 && (
-        <button 
-          onClick={() => retryFailedContent()}
-          className="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
-        >
-          Retry Failed Content
-        </button>
-      )}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg shadow-lg p-6"
+    >
+      <div className="flex items-center space-x-2 mb-6">
+        <AlertTriangle className="w-5 h-5 text-orange-600" />
+        <h3 className="text-lg font-semibold text-gray-900">Error Handling Demo</h3>
+      </div>
+
+      {/* Error Status */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-3">
+            {error ? (
+              <XCircle className="w-5 h-5 text-red-500" />
+            ) : (
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            )}
+            <div>
+              <p className="font-medium text-gray-900">Content Loading Status</p>
+              <p className="text-sm text-gray-600">
+                {error ? 'Error detected' : 'All systems operational'}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-900">
+              {error ? 'Failed' : 'Success'}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-800">Error Details</h4>
+                <p className="text-sm text-red-600 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Retry Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={simulateRetry}
+            disabled={isRetrying}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+            <span>{isRetrying ? 'Retrying...' : 'Test Retry'}</span>
+          </button>
+        </div>
+
+        {/* Recovery Status */}
+        <div className="text-center text-sm text-gray-600">
+          <p>Error recovery mechanisms are active and monitoring content loading.</p>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
-// Main demo component
-export const ErrorHandlingDemo: React.FC = () => {
-  const [shouldThrowError, setShouldThrowError] = useState(false);
-  
-  return (
-    <div className="p-8 space-y-8">
-      <h2 className="text-2xl font-bold">Error Handling Demo</h2>
-      
-      {/* Error Boundary Demo */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Error Boundary Demo</h3>
-        <button
-          onClick={() => setShouldThrowError(!shouldThrowError)}
-          className="px-4 py-2 bg-red-500 text-white rounded"
-        >
-          {shouldThrowError ? 'Fix Error' : 'Trigger Error'}
-        </button>
-        
-        <ContentErrorBoundary
-          onRetry={() => setShouldThrowError(false)}
-        >
-          <ErrorThrowingComponent shouldThrow={shouldThrowError} />
-        </ContentErrorBoundary>
-      </div>
-      
-      {/* Fallback Content Demo */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Fallback Content Demo</h3>
-        
-        <div className="space-y-2">
-          <h4 className="font-medium">Full Fallback Content:</h4>
-          <FallbackContent
-            contentName="Demo Content"
-            error="Simulated API error"
-            fallbackText="This is fallback content"
-            onRetry={() => console.log('Retry clicked')}
-            showError={true}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <h4 className="font-medium">Inline Fallback Content:</h4>
-          <p>
-            Here is some text with{' '}
-            <InlineFallbackContent
-              contentName="inline content"
-              error="Failed to load"
-              fallbackText="[fallback text]"
-              onRetry={() => console.log('Inline retry clicked')}
-              showError={true}
-            />
-            {' '}in the middle.
-          </p>
-        </div>
-      </div>
-      
-      {/* Content Context Demo */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Content Context Error Demo</h3>
-        <ContentProvider preloadNames={['demo_content_1', 'demo_content_2']}>
-          <ContentErrorDemo />
-        </ContentProvider>
-      </div>
-    </div>
-  );
-};
+export default ErrorHandlingDemo;
