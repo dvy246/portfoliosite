@@ -42,12 +42,29 @@ const Contact: React.FC = () => {
   const onSubmit = async (data: ContactForm) => {
     setIsSubmitting(true);
     try {
-      // Simulate form submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Message sent successfully! I\'ll get back to you within 24 hours.');
-      reset();
+      const response = await fetch('https://formspree.io/f/yadavdipu296@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          company: data.company,
+          message: data.message,
+          _replyto: data.email,
+          _subject: `New Portfolio Contact from ${data.name}`,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Message sent successfully! I\'ll get back to you within 24 hours.');
+        reset();
+      } else {
+        throw new Error('Failed to send message');
+      }
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      toast.error('Failed to send message. Please try again or email directly at yadavdipu296@gmail.com');
     } finally {
       setIsSubmitting(false);
     }

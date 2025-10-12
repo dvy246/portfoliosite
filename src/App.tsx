@@ -9,6 +9,7 @@ import Hero from './components/Sections/Hero';
 import About from './components/Sections/About';
 import Skills from './components/Sections/Skills';
 import Projects from './components/Sections/Projects';
+import Resume from './components/Sections/Resume';
 import Certifications from './components/Sections/Certifications';
 import Contact from './components/Sections/Contact';
 import Footer from './components/Layout/Footer';
@@ -26,7 +27,11 @@ const ALL_PAGE_CONTENT_NAMES = [
   
   // Projects section
   'cta_section_title', 'cta_section_content',
-  
+
+  // Resume section
+  'resume_title', 'resume_subtitle', 'resume_pdf_url',
+  'resume_highlights_1', 'resume_highlights_2', 'resume_highlights_3', 'resume_highlights_4',
+
   // Contact section
   'contact_title', 'contact_subtitle', 'contact_content', 'contact_section_title',
   'contact_email', 'contact_phone', 'contact_location', 'contact_social_title',
@@ -72,6 +77,7 @@ const AppContent: React.FC = () => {
         <About />
         <Skills />
         <Projects />
+        <Resume />
         <Certifications />
         <Contact />
       </main>
