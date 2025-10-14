@@ -42,29 +42,36 @@ const Contact: React.FC = () => {
   const onSubmit = async (data: ContactForm) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('https://formspree.io/f/yadavdipu296@gmail.com', {
+      const formData = new FormData();
+      formData.append('access_key', 'c6e73f4a-e0d1-4d8a-9c84-8b5e3d2a1f7e');
+      formData.append('name', data.name);
+      formData.append('email', data.email);
+      formData.append('company', data.company || 'Not specified');
+      formData.append('message', data.message);
+      formData.append('subject', `New Portfolio Contact from ${data.name}`);
+      formData.append('from_name', 'Portfolio Contact Form');
+      formData.append('to_email', 'yadavdipu296@gmail.com');
+
+      const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          company: data.company,
-          message: data.message,
-          _replyto: data.email,
-          _subject: `New Portfolio Contact from ${data.name}`,
-        }),
+        body: formData
       });
 
-      if (response.ok) {
-        toast.success('Message sent successfully! I\'ll get back to you within 24 hours.');
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('✅ Message sent successfully! I\'ll respond within 24 hours.', {
+          duration: 5000,
+          icon: '📧',
+        });
         reset();
       } else {
         throw new Error('Failed to send message');
       }
     } catch (error) {
-      toast.error('Failed to send message. Please try again or email directly at yadavdipu296@gmail.com');
+      toast.error('❌ Failed to send. Please email me directly at yadavdipu296@gmail.com', {
+        duration: 6000,
+      });
     } finally {
       setIsSubmitting(false);
     }
